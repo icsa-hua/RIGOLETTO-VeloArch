@@ -147,10 +147,11 @@ class Evaluator:
             print(f"  Throughput: {r['throughput']:.2e} ops/s")
             print(f"  Energy    : {r['energy']:.2f} J\n")
 
-# -----------------------------
-# Main Demo
-# -----------------------------
 def main():
+
+    # -------------------
+    # Architectures
+    # -------------------
     architectures = [
         Architecture("VPU", 256, 1e9, 2.0, 5e-9, 50e9),
         Architecture("NPU", 1024, 1e9, 1.0, 3e-9, 100e9),
@@ -161,17 +162,20 @@ def main():
     workloads = []
 
     # -------------------
-    # ResNet18 classification (random weights)
+    # CLASSIFICATION
     # -------------------
     cls_model = resnet18()
     for p in cls_model.parameters():
         nn.init.normal_(p)
     cls_model.eval()
-    workloads.append(ModelParser(cls_model, input_shape=(1,3,224,224)).analyze())
-    print("ResNet18 loaded with random weights")
+
+    w = ModelParser(cls_model, input_shape=(1,3,224,224)).analyze()
+    w.name = "ResNet18"
+    w.type = "Classification"
+    workloads.append(w)
 
     # -------------------
-    # Simple semantic segmentation (UNet-like)
+    # SEGMENTATION
     # -------------------
     class SimpleSeg(nn.Module):
         def __init__(self, in_ch=3, out_ch=21):
@@ -179,6 +183,7 @@ def main():
             self.conv1 = nn.Conv2d(in_ch, 32, 3, padding=1)
             self.relu = nn.ReLU()
             self.conv2 = nn.Conv2d(32, out_ch, 3, padding=1)
+
         def forward(self, x):
             x = self.conv1(x)
             x = self.relu(x)
@@ -189,15 +194,19 @@ def main():
     for p in seg_model.parameters():
         nn.init.normal_(p)
     seg_model.eval()
-    workloads.append(ModelParser(seg_model, input_shape=(1,3,224,224)).analyze())
-    print("Semantic segmentation model loaded with random weights")
+
+    w = ModelParser(seg_model, input_shape=(1,3,224,224)).analyze()
+    w.name = "SimpleSeg"
+    w.type = "Segmentation"
+    workloads.append(w)
 
     # -------------------
-    # Optional YOLO (if path exists)
+    # DETECTION (YOLO optional)
     # -------------------
     try:
         yolo_path = "models/obj_detection/yolov8n.pt"
         ckpt = torch.load(yolo_path, map_location="cpu", weights_only=False)
+
         if 'ema' in ckpt and ckpt['ema'] is not None:
             yolo_model = ckpt['ema']
         elif 'model' in ckpt and ckpt['model'] is not None:
@@ -207,17 +216,48 @@ def main():
 
         if yolo_model:
             yolo_model.eval()
-            workloads.append(ModelParser(yolo_model, input_shape=(1,3,640,640)).analyze())
-            print("YOLO model loaded and parsed")
+            w = ModelParser(yolo_model, input_shape=(1,3,640,640)).analyze()
+            w.name = "YOLOv8n"
+            w.type = "Detection"
+            workloads.append(w)
+
     except Exception as e:
-        print("YOLO model skipped:", e)
+        print("YOLO skipped:", e)
 
     # -------------------
-    # Run evaluation
+    # Evaluation
     # -------------------
     evaluator = Evaluator(workloads, architectures)
     results = evaluator.run()
-    evaluator.print_results(results)
+
+    # -------------------
+    # Print tables
+    # -------------------
+    from collections import defaultdict
+
+    grouped = defaultdict(list)
+
+    for r in results:
+        for w in workloads:
+            if w.name == r["workload"]:
+                grouped[w.type].append(r)
+
+    for net_type, rows in grouped.items():
+
+        print("\n" + "="*70)
+        print(f"{net_type.upper()} NETWORKS")
+        print("="*70)
+
+        print(f"{'Network':15} {'Machine':12} {'Latency(s)':12} {'Throughput':15} {'Energy(J)':10}")
+
+        for r in rows:
+            print(
+                f"{r['workload']:15} "
+                f"{r['architecture']:12} "
+                f"{r['latency']:12.6f} "
+                f"{r['throughput']:15.2e} "
+                f"{r['energy']:10.4f}"
+            )
 
 if __name__ == "__main__":
     main()
