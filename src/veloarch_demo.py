@@ -24,6 +24,7 @@ class Architecture:
         self.frequency = frequency
         self.energy_per_op = energy_per_op
         self.energy_per_byte = energy_per_byte
+        
         self.memory_bandwidth = memory_bandwidth
 
     def clone(self):

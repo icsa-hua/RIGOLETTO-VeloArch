@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VeloArch Evaluator — HUA</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <style>
+    :root {
+      --hua: #1a3a6b;
+      --hua-l: #2563eb;
+      --npu: #16a34a;
+      --dvfs: #ea580c;
+      --purp: #7c3aed;
+    }
+    body { background:#f1f5f9; font-family:system-ui,-apple-system,sans-serif; }
+
+    /* ── Header ─────────────────────────────── */
+    .app-header { background:var(--hua); color:#fff; padding:.9rem 0; box-shadow:0 2px 8px rgba(0,0,0,.25); }
+    .app-header h1 { font-size:1.5rem; font-weight:700; margin:0; letter-spacing:-.5px; }
+    .app-header .sub { font-size:.78rem; opacity:.7; }
+    .eu-badge { background:#003399; color:#ffd700; font-size:.68rem; padding:.2rem .5rem;
+                border-radius:4px; border:1px solid #ffd700; font-weight:600; letter-spacing:.5px; }
+
+    /* ── Cards ──────────────────────────────── */
+    .panel { background:#fff; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,.07);
+             margin-bottom:1.25rem; overflow:hidden; }
+    .panel-head { background:var(--hua); color:#fff; padding:.7rem 1.2rem; font-weight:600;
+                  font-size:.92rem; display:flex; align-items:center; gap:.5rem; }
+    .panel-body { padding:1.2rem; }
+
+    /* ── Workload items ─────────────────────── */
+    .wl-item { border:2px solid #e2e8f0; border-radius:10px; padding:1rem;
+               margin-bottom:.75rem; transition:border-color .2s; }
+    .wl-item:hover { border-color:var(--hua-l); }
+    .wl-num { background:var(--hua); color:#fff; width:24px; height:24px; border-radius:50%;
+              display:inline-flex; align-items:center; justify-content:center;
+              font-size:.75rem; font-weight:700; flex-shrink:0; }
+
+    /* ── Preset tiles ───────────────────────── */
+    .preset-tile { border:2px solid #e2e8f0; border-radius:10px; padding:.8rem 1rem;
+                   cursor:pointer; transition:all .2s; user-select:none; flex:1 1 0; min-width:120px; }
+    .preset-tile:hover { border-color:var(--hua-l); }
+    .preset-tile.sel { border-color:var(--hua-l); background:#eff6ff; }
+    .preset-tile.npu.sel  { border-color:var(--npu);  background:#f0fdf4; }
+    .preset-tile.dvfs.sel { border-color:var(--dvfs); background:#fff7ed; }
+    .pt-name { font-weight:700; font-size:.9rem; }
+    .pt-meta { font-size:.7rem; color:#64748b; line-height:1.5; margin-top:.15rem; }
+
+    /* ── Run button ─────────────────────────── */
+    .btn-run { background:var(--hua); border:none; color:#fff; padding:.7rem 2rem;
+               font-size:1rem; font-weight:600; border-radius:8px; transition:background .2s; }
+    .btn-run:hover:not(:disabled) { background:#12295a; color:#fff; }
+    .btn-run:disabled { background:#94a3b8; cursor:not-allowed; }
+
+    /* ── Results ────────────────────────────── */
+    .metric-card { background:#fff; border-radius:10px; padding:.9rem 1rem;
+                   box-shadow:0 2px 6px rgba(0,0,0,.07); text-align:center; }
+    .metric-val { font-size:1.4rem; font-weight:700; color:var(--hua); }
+    .metric-lbl { font-size:.72rem; color:#64748b; text-transform:uppercase; letter-spacing:.5px; }
+
+    /* ── Results table ──────────────────────── */
+    .res-table { font-size:.83rem; border-collapse:collapse; width:100%; }
+    .res-table thead th {
+      background:var(--hua); color:#fff; font-weight:600; padding:.55rem .8rem;
+      white-space:nowrap; position:sticky; top:0; z-index:1;
+    }
+    .res-table tbody td { padding:.5rem .8rem; border-bottom:1px solid #f1f5f9; vertical-align:middle; }
+    .res-table tbody tr:last-child td { border-bottom:none; }
+
+    /* workload name cell */
+    .wl-cell { background:#f8fafc !important; border-right:3px solid #e2e8f0 !important;
+               vertical-align:middle !important; min-width:150px; }
+    /* separator between workload groups */
+    .wl-sep td { padding:0 !important; height:3px; background:#e2e8f0; }
+
+    /* best value highlight */
+    .cell-best { background:#f0fdf4 !important; }
+
+    /* mini bar */
+    .bar-wrap { display:flex; align-items:center; gap:.45rem; white-space:nowrap; }
+    .bar-bg   { width:44px; height:4px; background:#e2e8f0; border-radius:2px;
+                flex-shrink:0; overflow:hidden; }
+    .bar-fill { height:4px; border-radius:2px; }
+
+    /* architecture pills */
+    .ap { display:inline-block; padding:.15rem .5rem; border-radius:4px;
+          font-size:.78rem; font-weight:600; }
+    .ap-VPU       { background:#dbeafe; color:#1e40af; }
+    .ap-NPU       { background:#dcfce7; color:#166534; }
+    .ap-DVFS      { background:#ffedd5; color:#9a3412; }
+    .ap-custom    { background:#f3e8ff; color:#6b21a8; }
+
+    /* bottleneck badges */
+    .bb { font-size:.75rem; padding:.2rem .5rem; border-radius:20px; font-weight:600; }
+    .bb-compute { background:#dbeafe; color:#1e40af; }
+    .bb-memory  { background:#ffedd5; color:#9a3412; }
+    .bb-unknown { background:#f1f5f9; color:#64748b; }
+
+    /* task badges */
+    .tb { display:inline-block; padding:.15rem .45rem; border-radius:12px; font-size:.72rem; font-weight:600; }
+    .tb-classification { background:#dbeafe; color:#1e40af; }
+    .tb-detection      { background:#dcfce7; color:#166534; }
+    .tb-segmentation   { background:#fce7f3; color:#9d174d; }
+    .tb-custom         { background:#f3e8ff; color:#6b21a8; }
+
+    /* chart tabs */
+    .ctab { background:none; border:none; padding:.45rem 1rem; font-weight:600; color:#64748b;
+            border-bottom:3px solid transparent; cursor:pointer; transition:all .15s; }
+    .ctab.active { color:var(--hua); border-bottom-color:var(--hua); }
+    .chart-box { position:relative; height:290px; }
+
+    /* code upload box */
+    .code-box { border:1.5px dashed #cbd5e1; border-radius:8px; padding:.7rem;
+                background:#f8fafc; margin-top:.5rem; }
+    .code-hint { font-size:.72rem; color:#64748b; }
+
+    /* loading overlay */
+    #overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.48); z-index:9999;
+               align-items:center; justify-content:center; flex-direction:column; gap:1rem; }
+    #overlay.on { display:flex; }
+    .spin { width:52px; height:52px; border:5px solid rgba(255,255,255,.3);
+            border-top-color:#fff; border-radius:50%; animation:sp .8s linear infinite; }
+    @keyframes sp { to { transform:rotate(360deg); } }
+
+    .mode-btn { font-size:.8rem; padding:.3rem .7rem; }
+    label { font-size:.83rem; font-weight:600; color:#374151; margin-bottom:.2rem; }
+    .form-control, .form-select { font-size:.83rem; }
+    .form-text { font-size:.72rem; }
+  </style>
+</head>
+<body>
+
+<div id="overlay">
+  <div class="spin"></div>
+  <div style="color:#fff;font-size:1rem;font-weight:600" id="load-msg">Analysing…</div>
+  <div style="color:rgba(255,255,255,.6);font-size:.78rem">Large models may take 15–30 s</div>
+</div>
+
+<header class="app-header">
+  <div class="container d-flex align-items-center justify-content-between flex-wrap gap-2">
+    <div>
+      <h1><i class="bi bi-cpu-fill me-2"></i>VeloArch Evaluator</h1>
+      <div class="sub">AI Accelerator Architecture Analysis &nbsp;·&nbsp; Harokopio University of Athens</div>
+    </div>
+    <span class="eu-badge">★ EU &nbsp;RIGOLETTO</span>
+  </div>
+</header>
+
+<div class="container py-4">
+
+  <div id="err-alert" class="alert alert-danger alert-dismissible d-none" role="alert">
+    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+    <span id="err-msg"></span>
+    <button type="button" class="btn-close" onclick="hideErr()"></button>
+  </div>
+
+  <div class="row g-4">
+
+    <!-- ═══════════════ LEFT — CONFIG ═══════════════ -->
+    <div class="col-lg-5">
+
+      <!-- Workloads -->
+      <div class="panel">
+        <div class="panel-head">
+          <i class="bi bi-diagram-3"></i> Workloads
+          <span class="ms-auto" style="font-size:.75rem;font-weight:400;opacity:.7">One or more models</span>
+        </div>
+        <div class="panel-body">
+          <div id="wl-list"></div>
+          <button class="btn btn-outline-secondary btn-sm mt-1" onclick="addWl()">
+            <i class="bi bi-plus-circle me-1"></i>Add Workload
+          </button>
+        </div>
+      </div>
+
+      <!-- Architectures -->
+      <div class="panel">
+        <div class="panel-head">
+          <i class="bi bi-motherboard"></i> Architectures
+          <span class="ms-auto" style="font-size:.75rem;font-weight:400;opacity:.7">Click to toggle</span>
+        </div>
+        <div class="panel-body">
+          <div class="d-flex flex-wrap gap-2 mb-3">
+            <div class="preset-tile sel" id="tile-VPU" onclick="togglePreset('VPU')">
+              <div class="d-flex align-items-center gap-1">
+                <i class="bi bi-grid-3x3-gap-fill" style="color:var(--hua-l)"></i>
+                <span class="pt-name">VPU</span>
+              </div>
+              <div class="pt-meta">256 units · 1 GHz<br>50 GB/s · 2 pJ/op</div>
+            </div>
+            <div class="preset-tile npu sel" id="tile-NPU" onclick="togglePreset('NPU')">
+              <div class="d-flex align-items-center gap-1">
+                <i class="bi bi-lightning-charge-fill" style="color:var(--npu)"></i>
+                <span class="pt-name">NPU</span>
+              </div>
+              <div class="pt-meta">1024 units · 1 GHz<br>100 GB/s · 1 pJ/op</div>
+            </div>
+            <div class="preset-tile dvfs sel" id="tile-VPU_DVFS" onclick="togglePreset('VPU_DVFS')">
+              <div class="d-flex align-items-center gap-1">
+                <i class="bi bi-battery-half" style="color:var(--dvfs)"></i>
+                <span class="pt-name">VPU+DVFS</span>
+              </div>
+              <div class="pt-meta">256 units · 700 MHz<br>50 GB/s · 1.4 pJ/op</div>
+            </div>
+          </div>
+          <div id="custom-arch-list"></div>
+          <button class="btn btn-outline-secondary btn-sm" onclick="addCustomArch()">
+            <i class="bi bi-sliders me-1"></i>Add Custom Architecture
+          </button>
+        </div>
+      </div>
+
+      <div class="d-grid">
+        <button class="btn btn-run" id="run-btn" onclick="runEval()">
+          <i class="bi bi-play-circle-fill me-2"></i>Run Evaluation
+        </button>
+      </div>
+    </div>
+
+    <!-- ═══════════════ RIGHT — RESULTS ═══════════════ -->
+    <div class="col-lg-7">
+
+      <!-- Placeholder -->
+      <div id="placeholder" class="panel">
+        <div class="panel-body text-center py-5">
+          <i class="bi bi-bar-chart-line" style="font-size:3rem;color:#cbd5e1"></i>
+          <p class="mt-3 text-muted mb-2">Configure workloads and architectures,<br>then click <strong>Run Evaluation</strong>.</p>
+          <div class="text-start d-inline-block" style="font-size:.8rem;color:#64748b">
+            <strong>Supported formats:</strong>
+            <ul class="mb-0 mt-1" style="padding-left:1.2rem">
+              <li><code>torch.save(model, path)</code> — no code file needed</li>
+              <li>YOLO / ultralytics <code>.pt</code> — no code file needed</li>
+              <li>State-dict <code>.pth</code> — upload <code>.py</code> code file too</li>
+              <li>Manual FLOPs + Memory input</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- Results (hidden until first run) -->
+      <div id="results" style="display:none">
+
+        <!-- Summary cards -->
+        <div class="row g-3 mb-3" id="summary-cards"></div>
+
+        <!-- Main results table -->
+        <div class="panel mb-3">
+          <div class="panel-head">
+            <i class="bi bi-table"></i> Evaluation Results
+            <button class="btn btn-sm ms-auto"
+              style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3)"
+              onclick="dlCSV()">
+              <i class="bi bi-download me-1"></i>CSV
+            </button>
+          </div>
+          <div style="overflow-x:auto; max-height:480px; overflow-y:auto;">
+            <table class="res-table">
+              <thead>
+                <tr>
+                  <th>Workload</th>
+                  <th>Architecture</th>
+                  <th>Latency</th>
+                  <th>Energy</th>
+                  <th>Throughput</th>
+                  <th>Bottleneck</th>
+                </tr>
+              </thead>
+              <tbody id="res-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="panel mb-3">
+          <div class="panel-head"><i class="bi bi-bar-chart-fill"></i> Charts</div>
+          <div class="panel-body">
+            <div class="d-flex border-bottom mb-3">
+              <button class="ctab active" id="tab-latency"    onclick="switchChart('latency')">Latency (ms)</button>
+              <button class="ctab"         id="tab-energy"     onclick="switchChart('energy')">Energy (mJ)</button>
+              <button class="ctab"         id="tab-throughput" onclick="switchChart('throughput')">Throughput (GOPS)</button>
+            </div>
+            <div class="chart-box"><canvas id="main-chart"></canvas></div>
+          </div>
+        </div>
+
+        <!-- Workload details -->
+        <div class="panel">
+          <div class="panel-head"><i class="bi bi-info-circle"></i> Workload Characteristics</div>
+          <div style="overflow-x:auto">
+            <table class="res-table">
+              <thead><tr>
+                <th>Name</th><th>Task</th><th>FLOPs</th><th>Memory</th><th>Arith. Intensity</th>
+              </tr></thead>
+              <tbody id="wl-detail-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+      </div><!-- /results -->
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+<script>
+/* ============================================================
+   State
+   ============================================================ */
+let wlIdx = 0, caIdx = 0;
+const selPresets = new Set(['VPU', 'NPU', 'VPU_DVFS']);
+let chart = null, lastData = null, activeChart = 'latency';
+
+const ARCH_COLORS = { 'VPU':'#2563eb','NPU':'#16a34a','VPU+DVFS':'#ea580c' };
+const FB_COLORS   = ['#7c3aed','#db2777','#0891b2','#65a30d','#b45309'];
+const archColor   = (n,i) => ARCH_COLORS[n] || FB_COLORS[i % FB_COLORS.length];
+
+/* ============================================================
+   Workloads
+   ============================================================ */
+function addWl() {
+  const id = wlIdx++;
+  const div = document.createElement('div');
+  div.className = 'wl-item'; div.id = `wl-${id}`;
+  div.innerHTML = `
+    <div class="d-flex align-items-center mb-2 gap-2">
+      <span class="wl-num">${id+1}</span>
+      <span class="fw-semibold" style="font-size:.88rem">Workload ${id+1}</span>
+      <button class="btn btn-sm btn-link text-danger ms-auto p-0" onclick="rmWl(${id})">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+
+    <div class="row g-2 mb-2">
+      <div class="col-7">
+        <label>Name</label>
+        <input type="text" class="form-control" id="wl-name-${id}" placeholder="e.g. ResNet50">
+      </div>
+      <div class="col-5">
+        <label>Task</label>
+        <select class="form-select" id="wl-task-${id}" onchange="onTask(${id})">
+          <option value="classification">Classification</option>
+          <option value="detection">Object Detection</option>
+          <option value="segmentation">Segmentation</option>
+          <option value="custom">Custom</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="d-flex gap-1 mb-2">
+      <button class="btn btn-sm btn-primary mode-btn" id="wl-btn-f-${id}" onclick="setMode(${id},'file')">
+        <i class="bi bi-upload me-1"></i>Upload Model
+      </button>
+      <button class="btn btn-sm btn-outline-secondary mode-btn" id="wl-btn-m-${id}" onclick="setMode(${id},'manual')">
+        <i class="bi bi-pencil me-1"></i>Manual Input
+      </button>
+    </div>
+
+    <!-- File panel -->
+    <div id="wl-fp-${id}">
+      <div class="mb-2">
+        <label>Weights <span class="text-muted fw-normal">(.pt / .pth)</span> <span class="text-danger">*</span></label>
+        <input type="file" class="form-control" id="wl-w-${id}" accept=".pt,.pth">
+        <div class="form-text">Use <code>torch.save(model, path)</code> for best compat.</div>
+      </div>
+      <div class="code-box">
+        <div class="d-flex align-items-center gap-2 mb-1">
+          <span style="font-size:.8rem;font-weight:600"><i class="bi bi-file-code me-1"></i>Model Class Code</span>
+          <span class="badge bg-secondary" style="font-size:.66rem">optional</span>
+        </div>
+        <input type="file" class="form-control form-control-sm" id="wl-c-${id}" accept=".py">
+        <div class="code-hint mt-1">
+          Only needed for state-dict-only .pth files.<br>
+          Script must define: <code>model = YourNet()</code> or <code>def get_model(): ...</code>
+        </div>
+      </div>
+      <div class="mt-2">
+        <label>Input Shape <span class="text-muted fw-normal">(B × C × H × W)</span></label>
+        <div class="row g-1">
+          <div class="col-3"><input type="number" class="form-control text-center" id="wl-b-${id}" value="1"   min="1" placeholder="B"></div>
+          <div class="col-3"><input type="number" class="form-control text-center" id="wl-ch-${id}" value="3"   min="1" placeholder="C"></div>
+          <div class="col-3"><input type="number" class="form-control text-center" id="wl-h-${id}" value="224" min="1" placeholder="H"></div>
+          <div class="col-3"><input type="number" class="form-control text-center" id="wl-ww-${id}" value="224" min="1" placeholder="W"></div>
+        </div>
+        <div class="form-text">Batch · Channels · Height · Width</div>
+      </div>
+    </div>
+
+    <!-- Manual panel -->
+    <div id="wl-mp-${id}" style="display:none">
+      <div class="mb-2">
+        <label>Total FLOPs</label>
+        <input type="text" class="form-control" id="wl-ops-${id}" placeholder="e.g. 1.8e9">
+        <div class="form-text">Multiply-add = 2 ops (IEEE)</div>
+      </div>
+      <div>
+        <label>Memory Footprint (bytes)</label>
+        <input type="text" class="form-control" id="wl-mem-${id}" placeholder="e.g. 500e6">
+      </div>
+    </div>
+  `;
+  document.getElementById('wl-list').appendChild(div);
+}
+
+function rmWl(id)   { document.getElementById(`wl-${id}`)?.remove(); }
+
+function setMode(id, mode) {
+  const fp = document.getElementById(`wl-fp-${id}`);
+  const mp = document.getElementById(`wl-mp-${id}`);
+  const bf = document.getElementById(`wl-btn-f-${id}`);
+  const bm = document.getElementById(`wl-btn-m-${id}`);
+  if (!fp || !mp) return;
+  if (mode === 'file') {
+    fp.style.display = 'block'; mp.style.display = 'none';
+    bf.className = 'btn btn-sm btn-primary mode-btn';
+    bm.className = 'btn btn-sm btn-outline-secondary mode-btn';
+  } else {
+    fp.style.display = 'none'; mp.style.display = 'block';
+    bm.className = 'btn btn-sm btn-primary mode-btn';
+    bf.className = 'btn btn-sm btn-outline-secondary mode-btn';
+  }
+}
+
+function onTask(id) {
+  const t = document.getElementById(`wl-task-${id}`)?.value;
+  const h = document.getElementById(`wl-h-${id}`);
+  const w = document.getElementById(`wl-ww-${id}`);
+  if (!h || !w) return;
+  h.value = (t === 'detection') ? 640 : 224;
+  w.value = (t === 'detection') ? 640 : 224;
+}
+
+/* ============================================================
+   Architectures
+   ============================================================ */
+function togglePreset(n) {
+  const tile = document.getElementById(`tile-${n}`);
+  if (!tile) return;
+  if (selPresets.has(n)) { selPresets.delete(n); tile.classList.remove('sel'); }
+  else                   { selPresets.add(n);    tile.classList.add('sel');    }
+}
+
+function addCustomArch() {
+  const id = caIdx++;
+  const div = document.createElement('div');
+  div.className = 'wl-item mb-2'; div.id = `ca-${id}`;
+  div.innerHTML = `
+    <div class="d-flex align-items-center mb-2 gap-2">
+      <i class="bi bi-sliders2" style="color:var(--purp)"></i>
+      <span class="fw-semibold" style="font-size:.88rem">Custom Arch ${id+1}</span>
+      <button class="btn btn-sm btn-link text-danger ms-auto p-0" onclick="rmCA(${id})">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+    <div class="row g-2">
+      <div class="col-12">
+        <label>Name</label>
+        <input type="text" class="form-control" id="ca-name-${id}" placeholder="e.g. MyAccel">
+      </div>
+      <div class="col-6"><label>Parallel Units</label>
+        <input type="number" class="form-control" id="ca-u-${id}" value="512" min="1"></div>
+      <div class="col-6"><label>Frequency (GHz)</label>
+        <input type="number" class="form-control" id="ca-f-${id}" value="1.0" step="0.1"></div>
+      <div class="col-6"><label>Energy/op (pJ)</label>
+        <input type="number" class="form-control" id="ca-eo-${id}" value="1.5" step="0.1"></div>
+      <div class="col-6"><label>Energy/byte (pJ)</label>
+        <input type="number" class="form-control" id="ca-eb-${id}" value="4.0" step="0.1"></div>
+      <div class="col-12"><label>Mem. Bandwidth (GB/s)</label>
+        <input type="number" class="form-control" id="ca-bw-${id}" value="75" min="1"></div>
+    </div>
+  `;
+  document.getElementById('custom-arch-list').appendChild(div);
+}
+function rmCA(id) { document.getElementById(`ca-${id}`)?.remove(); }
+
+/* ============================================================
+   Collect config
+   ============================================================ */
+function collectConfig() {
+  const items = [...document.querySelectorAll('[id^="wl-"]')]
+    .filter(el => el.id.match(/^wl-\d+$/));
+
+  if (!items.length) throw new Error('Add at least one workload.');
+
+  const workloads = items.map(item => {
+    const id = item.id.replace('wl-', '');
+    const manual = document.getElementById(`wl-mp-${id}`)?.style.display !== 'none';
+    const name   = document.getElementById(`wl-name-${id}`)?.value?.trim() || '';
+    const task   = document.getElementById(`wl-task-${id}`)?.value || 'custom';
+    if (manual) {
+      const ops = parseFloat(document.getElementById(`wl-ops-${id}`)?.value || '');
+      const mem = parseFloat(document.getElementById(`wl-mem-${id}`)?.value || '');
+      if (isNaN(ops) || ops < 0) throw new Error(`Workload "${name||id}": enter valid FLOPs.`);
+      if (isNaN(mem) || mem < 0) throw new Error(`Workload "${name||id}": enter valid Memory.`);
+      return { name, task_type:task, manual:true, operations:ops, memory_bytes:mem };
+    }
+    const b  = parseInt(document.getElementById(`wl-b-${id}`)?.value)  || 1;
+    const ch = parseInt(document.getElementById(`wl-ch-${id}`)?.value) || 3;
+    const h  = parseInt(document.getElementById(`wl-h-${id}`)?.value)  || 224;
+    const w  = parseInt(document.getElementById(`wl-ww-${id}`)?.value) || 224;
+    return { name, task_type:task, manual:false, input_shape:[b,ch,h,w] };
+  });
+
+  const architectures = [];
+  for (const p of selPresets) architectures.push({ preset:p });
+
+  const cas = [...document.querySelectorAll('[id^="ca-"]')]
+    .filter(el => el.id.match(/^ca-\d+$/));
+  for (const el of cas) {
+    const id = el.id.replace('ca-', '');
+    architectures.push({
+      name:             document.getElementById(`ca-name-${id}`)?.value?.trim() || `Custom_${+id+1}`,
+      parallel_units:   parseFloat(document.getElementById(`ca-u-${id}`)?.value)  || 512,
+      frequency:        parseFloat(document.getElementById(`ca-f-${id}`)?.value)  * 1e9 || 1e9,
+      energy_per_op:    parseFloat(document.getElementById(`ca-eo-${id}`)?.value) * 1e-12 || 1.5e-12,
+      energy_per_byte:  parseFloat(document.getElementById(`ca-eb-${id}`)?.value) * 1e-12 || 4e-12,
+      memory_bandwidth: parseFloat(document.getElementById(`ca-bw-${id}`)?.value) * 1e9  || 75e9,
+    });
+  }
+
+  if (!architectures.length) throw new Error('Select at least one architecture.');
+  return { workloads, architectures };
+}
+
+/* ============================================================
+   Run evaluation
+   ============================================================ */
+async function runEval() {
+  hideErr();
+  let config;
+  try { config = collectConfig(); } catch(e) { showErr(e.message); return; }
+
+  const items = [...document.querySelectorAll('[id^="wl-"]')]
+    .filter(el => el.id.match(/^wl-\d+$/));
+  const fd = new FormData();
+  fd.append('config', JSON.stringify(config));
+
+  for (let i = 0; i < config.workloads.length; i++) {
+    if (config.workloads[i].manual) continue;
+    const id = items[i]?.id?.replace('wl-', '');
+    if (!id) { showErr(`Workload ${i+1}: index error.`); return; }
+
+    const wInput = document.getElementById(`wl-w-${id}`);
+    const cInput = document.getElementById(`wl-c-${id}`);
+    if (!wInput?.files?.length) { showErr(`Workload #${i+1}: no weights file selected.`); return; }
+    fd.append(`model_file_${i}`, wInput.files[0]);
+    if (cInput?.files?.length) fd.append(`code_file_${i}`, cInput.files[0]);
+  }
+
+  document.getElementById('overlay').classList.add('on');
+  document.getElementById('run-btn').disabled = true;
+
+  try {
+    const resp = await fetch('/api/evaluate', { method:'POST', body:fd });
+    const text = await resp.text();
+    let data;
+    try { data = JSON.parse(text); }
+    catch { showErr('Server returned invalid JSON. See browser console.'); console.error(text); return; }
+    if (!resp.ok || data.error) { showErr(data?.error || `Server error ${resp.status}`); return; }
+    lastData = data;
+    renderResults(data);
+  } catch(e) {
+    showErr('Network error: ' + e.message);
+  } finally {
+    document.getElementById('overlay').classList.remove('on');
+    document.getElementById('run-btn').disabled = false;
+  }
+}
+
+/* ============================================================
+   Render results
+   ============================================================ */
+function renderResults(data) {
+  const { results, workloads, architectures } = data;
+  if (!results?.length || !workloads?.length) { showErr('Empty results from server.'); return; }
+
+  // Show results, hide placeholder
+  document.getElementById('placeholder').style.display = 'none';
+  document.getElementById('results').style.display     = 'block';   // ← must be 'block', not ''
+
+  const archNames  = [...new Set(results.map(r => r.architecture))];
+  const validLats  = results.map(r => r.latency_ms).filter(v => v != null && isFinite(v));
+  const bestLatR   = results.reduce((b,r) => (r.latency_ms != null && r.latency_ms < (b?.latency_ms ?? Infinity)) ? r : b, null);
+  const bestEngR   = results.reduce((b,r) => (r.energy_mj  != null && r.energy_mj  < (b?.energy_mj  ?? Infinity)) ? r : b, null);
+
+  // Summary cards
+  document.getElementById('summary-cards').innerHTML = `
+    <div class="col-4"><div class="metric-card">
+      <div class="metric-val">${workloads.length}</div>
+      <div class="metric-lbl">Workload${workloads.length>1?'s':''}</div>
+    </div></div>
+    <div class="col-4"><div class="metric-card">
+      <div class="metric-val">${bestLatR ? bestLatR.latency_ms.toFixed(2) : '—'}</div>
+      <div class="metric-lbl">Best Latency ms</div>
+      ${bestLatR ? `<div style="font-size:.7rem;color:#64748b">${esc(bestLatR.architecture)}</div>` : ''}
+    </div></div>
+    <div class="col-4"><div class="metric-card">
+      <div class="metric-val">${bestEngR ? bestEngR.energy_mj.toFixed(3) : '—'}</div>
+      <div class="metric-lbl">Best Energy mJ</div>
+      ${bestEngR ? `<div style="font-size:.7rem;color:#64748b">${esc(bestEngR.architecture)}</div>` : ''}
+    </div></div>
+  `;
+
+  // Results table (grouped by workload)
+  buildResultsTable(results, workloads);
+
+  // Workload details
+  document.getElementById('wl-detail-tbody').innerHTML = workloads.map(w => {
+    const ai = w.arithmetic_intensity;
+    const warn = w.is_zero
+      ? `<div class="text-warning mt-1" style="font-size:.72rem"><i class="bi bi-exclamation-triangle me-1"></i>Zero ops — check input shape or add code file</div>`
+      : '';
+    return `<tr>
+      <td><strong>${esc(w.name)}</strong>${warn}</td>
+      <td><span class="tb tb-${w.task_type}">${w.task_type}</span></td>
+      <td>${fmtOps(w.operations)}</td>
+      <td>${w.memory_mb != null ? w.memory_mb.toFixed(1)+' MB' : '—'}</td>
+      <td>${ai != null ? ai.toFixed(1)+' ops/B' : '<span class="text-muted">N/A</span>'}</td>
+    </tr>`;
+  }).join('');
+
+  // Chart
+  buildChart(results, workloads, architectures, activeChart);
+}
+
+/* ────────────────────────────────────────────────────────────
+   Grouped results table with mini bars + best-value highlight
+   ──────────────────────────────────────────────────────────── */
+function buildResultsTable(results, workloads) {
+  let html = '';
+
+  for (let wi = 0; wi < workloads.length; wi++) {
+    const wl = workloads[wi];
+    const rows = results.filter(r => r.workload === wl.name);
+    if (!rows.length) continue;
+
+    // Per-workload extremes for bar scaling
+    const lats = rows.map(r => r.latency_ms).filter(v => v != null && isFinite(v) && v > 0);
+    const engs = rows.map(r => r.energy_mj ).filter(v => v != null && isFinite(v) && v > 0);
+    const maxLat = lats.length ? Math.max(...lats) : 1;
+    const minLat = lats.length ? Math.min(...lats) : 0;
+    const maxEng = engs.length ? Math.max(...engs) : 1;
+    const minEng = engs.length ? Math.min(...engs) : 0;
+    const maxThr = Math.max(...rows.map(r => r.throughput_ops || 0));
+
+    rows.forEach((r, ri) => {
+      const latBest = r.latency_ms === minLat && lats.length > 0;
+      const engBest = r.energy_mj  === minEng && engs.length > 0;
+      const latPct  = maxLat > 0 && r.latency_ms != null ? (r.latency_ms / maxLat * 100) : 0;
+      const engPct  = maxEng > 0 && r.energy_mj  != null ? (r.energy_mj  / maxEng * 100) : 0;
+      const thrPct  = maxThr > 0 && r.throughput_ops != null ? (r.throughput_ops / maxThr * 100) : 0;
+
+      html += `<tr>`;
+
+      // Workload cell spans all architecture rows for this workload
+      if (ri === 0) {
+        html += `<td rowspan="${rows.length}" class="wl-cell">
+          <div class="fw-bold mb-1">${esc(wl.name)}</div>
+          <span class="tb tb-${wl.task_type}">${wl.task_type}</span>
+          <div class="text-muted mt-1" style="font-size:.7rem">${fmtOps(wl.operations)}</div>
+        </td>`;
+      }
+
+      const apClass = r.architecture === 'VPU' ? 'ap-VPU'
+                    : r.architecture === 'NPU' ? 'ap-NPU'
+                    : r.architecture === 'VPU+DVFS' ? 'ap-DVFS' : 'ap-custom';
+
+      html += `
+        <td><span class="ap ${apClass}">${esc(r.architecture)}</span></td>
+        <td class="${latBest ? 'cell-best' : ''}">
+          ${miniBar(latPct, r.latency_ms?.toFixed(2) ?? '—', 'ms', latBest,
+                    latBest ? '#16a34a' : '#94a3b8')}
+        </td>
+        <td class="${engBest ? 'cell-best' : ''}">
+          ${miniBar(engPct, r.energy_mj?.toFixed(3) ?? '—', 'mJ', engBest,
+                    engBest ? '#16a34a' : '#94a3b8')}
+        </td>
+        <td>
+          ${miniBar(thrPct, r.throughput_ops != null ? (r.throughput_ops/1e9).toFixed(1) : '—', 'G', false, '#2563eb')}
+        </td>
+        <td>${bbadge(r.bottleneck)}</td>
+      </tr>`;
+    });
+
+    // Separator between workload groups
+    if (wi < workloads.length - 1) {
+      html += `<tr class="wl-sep"><td colspan="6"></td></tr>`;
+    }
+  }
+
+  document.getElementById('res-tbody').innerHTML = html;
+}
+
+function miniBar(pct, val, unit, isBest, color) {
+  const star = isBest ? ' <span style="color:#16a34a">★</span>' : '';
+  const bold = isBest ? 'font-weight:700;' : '';
+  return `<div class="bar-wrap">
+    <div class="bar-bg"><div class="bar-fill" style="width:${pct.toFixed(0)}%;background:${color}"></div></div>
+    <span style="${bold}">${val} <span style="color:#94a3b8;font-size:.75em">${unit}</span>${star}</span>
+  </div>`;
+}
+
+function bbadge(b) {
+  if (b === 'compute') return '<span class="bb bb-compute"><i class="bi bi-cpu me-1"></i>compute</span>';
+  if (b === 'memory')  return '<span class="bb bb-memory"><i class="bi bi-database me-1"></i>memory</span>';
+  return '<span class="bb bb-unknown">unknown</span>';
+}
+
+/* ============================================================
+   Chart
+   ============================================================ */
+function buildChart(results, workloads, architectures, type) {
+  const wlNames   = workloads.map(w => w.name);
+  const archNames = architectures.map(a => a.name);
+
+  const getValue = r => {
+    if (type === 'latency')    return r.latency_ms    ?? 0;
+    if (type === 'energy')     return r.energy_mj     ?? 0;
+    if (type === 'throughput') return r.throughput_ops != null ? r.throughput_ops / 1e9 : 0;
+    return 0;
+  };
+
+  const datasets = archNames.map((aname, i) => ({
+    label: aname,
+    data: wlNames.map(wn => {
+      const r = results.find(r => r.workload === wn && r.architecture === aname);
+      return r ? getValue(r) : 0;
+    }),
+    backgroundColor: archColor(aname, i) + 'cc',
+    borderColor:     archColor(aname, i),
+    borderWidth: 1.5, borderRadius: 4,
+  }));
+
+  const yLabel = type === 'latency' ? 'Latency (ms)' : type === 'energy' ? 'Energy (mJ)' : 'Throughput (GOPS)';
+
+  if (chart) { chart.destroy(); chart = null; }
+  const ctx = document.getElementById('main-chart');
+  if (!ctx) return;
+  chart = new Chart(ctx.getContext('2d'), {
+    type: 'bar',
+    data: { labels: wlNames, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'top', labels: { font: { size: 12 } } },
+        tooltip: { callbacks: { label: c => ` ${c.dataset.label}: ${c.parsed.y?.toFixed(4) ?? 'N/A'}` } }
+      },
+      scales: {
+        y: { beginAtZero: true, title: { display: true, text: yLabel, font: { weight: 'bold' } } },
+        x: { title: { display: wlNames.length > 1, text: 'Workload' } }
+      }
+    }
+  });
+}
+
+function switchChart(type) {
+  activeChart = type;
+  ['latency','energy','throughput'].forEach(t =>
+    document.getElementById(`tab-${t}`)?.classList.toggle('active', t === type)
+  );
+  if (lastData) buildChart(lastData.results, lastData.workloads, lastData.architectures, type);
+}
+
+/* ============================================================
+   CSV
+   ============================================================ */
+function dlCSV() {
+  if (!lastData) return;
+  const rows = [['Workload','Task','Architecture','Latency_ms','Throughput_GOPS',
+                 'Energy_mJ','Bottleneck','FLOPs','Memory_MB','Arith_Intensity']];
+  for (const r of lastData.results) {
+    rows.push([
+      r.workload, r.task_type, r.architecture,
+      r.latency_ms   != null ? r.latency_ms.toFixed(6)          : '',
+      r.throughput_ops!=null ? (r.throughput_ops/1e9).toFixed(4) : '',
+      r.energy_mj    != null ? r.energy_mj.toFixed(6)            : '',
+      r.bottleneck,
+      r.ops != null ? r.ops.toExponential(4) : '',
+      r.memory_mb != null ? r.memory_mb.toFixed(2) : '',
+      r.arithmetic_intensity != null ? r.arithmetic_intensity.toFixed(2) : 'inf',
+    ]);
+  }
+  const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = 'veloarch_results.csv';
+  a.click();
+}
+
+/* ============================================================
+   Utilities
+   ============================================================ */
+function fmtOps(n) {
+  if (n == null || isNaN(n)) return '—';
+  if (n === 0) return '0 (failed)';
+  if (n >= 1e12) return (n/1e12).toFixed(2)+' TFLOPs';
+  if (n >= 1e9)  return (n/1e9).toFixed(2)+' GFLOPs';
+  if (n >= 1e6)  return (n/1e6).toFixed(2)+' MFLOPs';
+  return n.toExponential(2)+' ops';
+}
+function esc(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function showErr(msg) {
+  document.getElementById('err-msg').textContent = msg || 'Unknown error.';
+  document.getElementById('err-alert').classList.remove('d-none');
+  window.scrollTo({ top:0, behavior:'smooth' });
+}
+function hideErr() { document.getElementById('err-alert').classList.add('d-none'); }
+
+/* ============================================================
+   Init
+   ============================================================ */
+document.addEventListener('DOMContentLoaded', () => addWl());
+</script>
+</body>
+</html>
