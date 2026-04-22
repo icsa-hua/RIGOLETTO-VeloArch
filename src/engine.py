@@ -25,29 +25,53 @@ import torch.nn as nn
 # ---------------------------------------------------------------------------
 
 PRESET_ARCHITECTURES = {
+    # All presets model 28 nm-class embedded automotive processors.
+    # peak_compute = parallel_units × frequency  (MACs/s; 1 MAC = 2 FLOPs IEEE)
+    # ridge_point  = peak_compute / bandwidth    (ops/byte; roofline transition)
+    #
+    # VPU: 256 MAC units, 1 GHz  → 256 GOPS, ridge ≈ 5.1 ops/byte
     "VPU": {
         "name": "VPU",
         "parallel_units": 256,
         "frequency": 1e9,
-        "energy_per_op": 2.0e-12,   # J/op  (2 pJ)
-        "energy_per_byte": 5e-12,   # J/byte (5 pJ)
-        "memory_bandwidth": 50e9,   # bytes/s
+        "energy_per_op": 2.0e-12,    # 2 pJ/op  — 28 nm CMOS estimate
+        "energy_per_byte": 5.0e-12,  # 5 pJ/B   — LPDDR4 access
+        "memory_bandwidth": 50e9,    # 50 GB/s  — LPDDR4x dual-channel
     },
+    # NPU: 1024 MAC units, 1 GHz → 1.024 TOPS, ridge ≈ 10.2 ops/byte
     "NPU": {
         "name": "NPU",
         "parallel_units": 1024,
         "frequency": 1e9,
-        "energy_per_op": 1.0e-12,
-        "energy_per_byte": 3e-12,
-        "memory_bandwidth": 100e9,
+        "energy_per_op": 1.0e-12,    # 1 pJ/op  — systolic array efficiency
+        "energy_per_byte": 3.0e-12,  # 3 pJ/B   — wider memory bus
+        "memory_bandwidth": 100e9,   # 100 GB/s — LPDDR5 dual-channel
     },
+    # VPU+DVFS: same VPU core at 0.7 GHz with voltage scaled proportionally.
+    # CMOS dynamic energy ∝ V² × f; with V ∝ f → E_op ∝ f².
+    # At 0.7×: E_op = 2.0 × 0.7² = 0.98 pJ  (NOT 0.7× linear — that is wrong).
     "VPU_DVFS": {
         "name": "VPU+DVFS",
         "parallel_units": 256,
-        "frequency": 0.7e9,
-        "energy_per_op": 1.4e-12,
-        "energy_per_byte": 5e-12,
+        "frequency": 0.7e9,          # 700 MHz
+        "energy_per_op": 0.98e-12,   # 2.0 × 0.7² pJ — quadratic DVFS scaling
+        "energy_per_byte": 5.0e-12,  # unchanged (memory bus voltage not scaled)
         "memory_bandwidth": 50e9,
+    },
+    # RTX 5060 (Blackwell GB206, desktop, released 2025).
+    # Source: NVIDIA official + TechPowerUp specs.
+    # CUDA cores: 3840 (30 SMs × 128). Each core executes FMA → 2 FP32 ops/cycle.
+    # parallel_units = 3840 × 2 = 7680 so that peak_compute = parallel_units × freq
+    # yields the correct FP32 TFLOPS figure (19.75 TFLOPS).
+    # energy_per_op = TDP / peak_compute = 145 W / 19.75e12 ops/s ≈ 7.3 pJ/op.
+    # energy_per_byte: GDDR7 interface, ~20 pJ/byte (literature estimate for GDDR7).
+    "RTX5060": {
+        "name": "RTX 5060",
+        "parallel_units": 7680,       # 3840 CUDA cores × 2 FP32 ops/cycle (FMA)
+        "frequency": 2.572e9,         # 2572 MHz boost clock
+        "energy_per_op": 7.3e-12,     # 7.3 pJ/op  — 145 W TDP / 19.75 TOPS
+        "energy_per_byte": 20.0e-12,  # 20 pJ/byte — GDDR7 interface estimate
+        "memory_bandwidth": 448e9,    # 448 GB/s  — GDDR7 28 Gbps 128-bit bus
     },
 }
 
@@ -535,6 +559,14 @@ class ModelParser:
 # ---------------------------------------------------------------------------
 
 class PerformanceModel:
+    """
+    Roofline analytical model (Williams et al., 2009).
+
+    Latency   = max(ops / peak_compute,  bytes / bandwidth)
+    Attainable = min(peak_compute,  AI × bandwidth)    [ops/s]
+    HW Util   = attainable / peak_compute               [0–1]
+    Bound ratio = AI / ridge_point  (>1 compute-bound, <1 memory-bound)
+    """
 
     @staticmethod
     def latency(workload: Workload, arch: Architecture) -> float:
@@ -545,8 +577,33 @@ class PerformanceModel:
         return max(compute_time, mem_time)
 
     @staticmethod
-    def throughput(arch: Architecture) -> float:
-        return arch.peak_compute
+    def attainable(workload: Workload, arch: Architecture):
+        """Roofline attainable performance in ops/s. None if AI unavailable."""
+        ai = workload.arithmetic_intensity
+        if ai is None:
+            return None
+        return min(arch.peak_compute, ai * arch.memory_bandwidth)
+
+    @staticmethod
+    def hw_utilization(workload: Workload, arch: Architecture):
+        """Fraction of peak compute achievable under the roofline (0–1)."""
+        att = PerformanceModel.attainable(workload, arch)
+        if att is None or arch.peak_compute == 0:
+            return None
+        return att / arch.peak_compute
+
+    @staticmethod
+    def bound_ratio(workload: Workload, arch: Architecture):
+        """
+        AI / ridge_point.
+        > 1 → compute-bound (higher = deeper into compute roof).
+        < 1 → memory-bound  (lower  = deeper into memory roof).
+        """
+        rp = arch.ridge_point
+        ai = workload.arithmetic_intensity
+        if rp is None or ai is None or rp == 0:
+            return None
+        return ai / rp
 
     @staticmethod
     def bottleneck(workload: Workload, arch: Architecture) -> str:
@@ -572,7 +629,8 @@ class PowerModel:
     def apply_dvfs(arch: Architecture, freq_scale: float = 1.0) -> Architecture:
         new_arch = arch.clone()
         new_arch.frequency *= freq_scale
-        new_arch.energy_per_op *= freq_scale
+        # CMOS dynamic power P = αCV²f; with V ∝ f → E_op = P/f = αCV² ∝ f²
+        new_arch.energy_per_op *= freq_scale ** 2
         return new_arch
 
 
@@ -589,27 +647,46 @@ class Evaluator:
     def run(self) -> list:
         results = []
         for w in self.workloads:
-            latency_list = []
             for a in self.architectures:
-                latency = PerformanceModel.latency(w, a)
-                energy = PowerModel.energy(w, a)
+                latency   = PerformanceModel.latency(w, a)
+                energy    = PowerModel.energy(w, a)
                 bottleneck = PerformanceModel.bottleneck(w, a)
-                latency_list.append(latency)
+                att       = PerformanceModel.attainable(w, a)
+                hw_util   = PerformanceModel.hw_utilization(w, a)
+                b_ratio   = PerformanceModel.bound_ratio(w, a)
+
+                # Effective throughput = ops actually processed per second.
+                # This is workload-dependent (unlike peak_compute which is constant).
+                # For compute-bound: eff_throughput ≈ peak_compute.
+                # For memory-bound:  eff_throughput = AI × bandwidth < peak_compute.
+                eff_tput = w.operations / latency if latency > 0 else float("inf")
+
                 results.append({
-                    "workload": w.name,
-                    "task_type": w.task_type,
+                    "workload":    w.name,
+                    "task_type":   w.task_type,
                     "architecture": a.name,
-                    "latency_s": _safe(latency),
-                    "latency_ms": _safe(latency * 1000),
-                    "throughput_ops": _safe(PerformanceModel.throughput(a)),
-                    "energy_j": _safe(energy),
-                    "energy_mj": _safe(energy * 1000),
-                    "bottleneck": bottleneck,
+                    # ── latency ──────────────────────────────────────
+                    "latency_s":   _safe(latency),
+                    "latency_ms":  _safe(latency * 1000),
+                    # ── throughput ────────────────────────────────────
+                    # effective = ops/latency  (varies per workload+arch)
+                    # peak      = parallel_units × frequency  (arch property only)
+                    "throughput_ops":      _safe(eff_tput),
+                    "peak_compute_ops":    _safe(a.peak_compute),
+                    # ── energy ───────────────────────────────────────
+                    "energy_j":    _safe(energy),
+                    "energy_mj":   _safe(energy * 1000),
+                    # ── roofline metrics ──────────────────────────────
+                    "bottleneck":           bottleneck,
+                    "bound_ratio":          _safe(b_ratio),
+                    "hw_utilization":       _safe(hw_util),
+                    "attainable_ops":       _safe(att),
                     "arithmetic_intensity": _safe(w.arithmetic_intensity),
-                    "ops": w.operations,
-                    "memory_mb": w.memory_bytes / 1e6,
-                    "peak_compute": _safe(a.peak_compute),
-                    "ridge_point": _safe(a.ridge_point),
+                    "ridge_point":          _safe(a.ridge_point),
+                    # ── workload characteristics ──────────────────────
+                    "ops":           w.operations,
+                    "memory_mb":     w.memory_bytes / 1e6,
+                    "peak_compute":  _safe(a.peak_compute),
                     "partial_analysis": w.is_zero,
                 })
         return results

@@ -160,6 +160,7 @@
     .preset-tile.sel     { border-color: var(--blue);   background: var(--blue-lt); }
     .preset-tile.npu.sel { border-color: var(--green);  background: var(--green-lt); }
     .preset-tile.dvfs.sel{ border-color: var(--orange); background: var(--orange-lt); }
+    .preset-tile.gpu.sel { border-color: var(--purple); background: var(--purple-lt); }
     .pt-check {
       position: absolute; top: 5px; right: 5px;
       width: 15px; height: 15px; border-radius: 50%;
@@ -170,6 +171,7 @@
     .preset-tile.sel     .pt-check { background: var(--blue);   border-color: var(--blue);   color: #fff; }
     .preset-tile.npu.sel .pt-check { background: var(--green);  border-color: var(--green);  color: #fff; }
     .preset-tile.dvfs.sel .pt-check{ background: var(--orange); border-color: var(--orange); color: #fff; }
+    .preset-tile.gpu.sel .pt-check { background: var(--purple); border-color: var(--purple); color: #fff; }
     .pt-icon { font-size: 1.1rem; margin-bottom: .3rem; }
     .pt-name { font-size: .78rem; font-weight: 700; color: var(--s900); }
     .pt-meta { font-size: .67rem; color: var(--s500); line-height: 1.55; margin-top: .1rem; }
@@ -481,7 +483,13 @@
               <div class="pt-check"><i class="bi bi-check"></i></div>
               <div class="pt-icon" style="color:var(--orange)"><i class="bi bi-battery-half"></i></div>
               <div class="pt-name">VPU+DVFS</div>
-              <div class="pt-meta">256 u · 700 MHz<br>50 GB/s · 1.4 pJ</div>
+              <div class="pt-meta">256 u · 700 MHz<br>50 GB/s · 0.98 pJ</div>
+            </div>
+            <div class="preset-tile gpu sel" id="tile-RTX5060" onclick="togglePreset('RTX5060')">
+              <div class="pt-check"><i class="bi bi-check"></i></div>
+              <div class="pt-icon" style="color:var(--purple)"><i class="bi bi-gpu-card"></i></div>
+              <div class="pt-name">RTX 5060</div>
+              <div class="pt-meta">7680 u · 2.57 GHz<br>448 GB/s · 7.3 pJ</div>
             </div>
           </div>
           <div id="custom-arch-list"></div>
@@ -569,10 +577,10 @@
                 <tr>
                   <th>Workload</th>
                   <th>Architecture</th>
-                  <th>Latency</th>
-                  <th>Energy</th>
-                  <th>Throughput</th>
-                  <th>Bottleneck</th>
+                  <th>Latency (ms)</th>
+                  <th>Energy (mJ)</th>
+                  <th>Eff. Throughput</th>
+                  <th>Bottleneck / HW Util</th>
                 </tr>
               </thead>
               <tbody id="res-tbody"></tbody>
@@ -624,7 +632,7 @@
    State
    ============================================================ */
 let wlIdx = 0, caIdx = 0;
-const selPresets = new Set(['VPU', 'NPU', 'VPU_DVFS']);
+const selPresets = new Set(['VPU', 'NPU', 'VPU_DVFS', 'RTX5060']);
 let chart = null, lastData = null, activeChart = 'latency';
 
 const ARCH_COLORS = { 'VPU':'#2563eb', 'NPU':'#16a34a', 'VPU+DVFS':'#ea580c' };
@@ -985,6 +993,10 @@ function buildResultsTable(results, workloads) {
                     : r.architecture === 'NPU' ? 'ap-NPU'
                     : r.architecture === 'VPU+DVFS' ? 'ap-DVFS' : 'ap-custom';
 
+      // Effective throughput label: ops/latency (workload-dependent, NOT peak_compute)
+      const thrVal = r.throughput_ops != null ? (r.throughput_ops / 1e9).toFixed(2) : '—';
+      const peakVal = r.peak_compute_ops != null ? (r.peak_compute_ops / 1e9).toFixed(0) : null;
+
       html += `
         <td><span class="ap ${apClass}">${esc(r.architecture)}</span></td>
         <td class="${latBest ? 'cell-best' : ''}">
@@ -993,8 +1005,11 @@ function buildResultsTable(results, workloads) {
         <td class="${engBest ? 'cell-best' : ''}">
           ${miniBar(engPct, r.energy_mj?.toFixed(3) ?? '—', 'mJ', engBest, engBest ? '#16a34a' : '#94a3b8')}
         </td>
-        <td>${miniBar(thrPct, r.throughput_ops != null ? (r.throughput_ops / 1e9).toFixed(1) : '—', 'G', false, '#2563eb')}</td>
-        <td>${bbadge(r.bottleneck)}</td>
+        <td>
+          ${miniBar(thrPct, thrVal, 'GOPS', false, '#2563eb')}
+          ${peakVal ? `<div style="font-size:.68rem;color:var(--s400);margin-top:.1rem">peak: ${peakVal} GOPS</div>` : ''}
+        </td>
+        <td>${bbadge(r.bottleneck, r.bound_ratio, r.hw_utilization)}</td>
       </tr>`;
     });
 
@@ -1014,9 +1029,17 @@ function miniBar(pct, val, unit, isBest, color) {
   </div>`;
 }
 
-function bbadge(b) {
-  if (b === 'compute') return '<span class="bb bb-compute"><i class="bi bi-cpu"></i>compute</span>';
-  if (b === 'memory')  return '<span class="bb bb-memory"><i class="bi bi-database"></i>memory</span>';
+function bbadge(b, ratio, util) {
+  // ratio  = AI / ridge_point  (>1 compute-bound, <1 memory-bound)
+  // util   = attainable / peak_compute  (0–1)
+  const ratioStr = ratio != null
+    ? `<span style="font-weight:700;margin-left:.25rem">×${ratio.toFixed(1)}</span>` : '';
+  const utilStr  = util != null
+    ? `<div style="font-size:.68rem;color:var(--s500);margin-top:.15rem">${(util*100).toFixed(0)}% HW util</div>` : '';
+  if (b === 'compute')
+    return `<div><span class="bb bb-compute"><i class="bi bi-cpu"></i>compute${ratioStr}</span>${utilStr}</div>`;
+  if (b === 'memory')
+    return `<div><span class="bb bb-memory"><i class="bi bi-database"></i>memory${ratioStr}</span>${utilStr}</div>`;
   return '<span class="bb bb-unknown">unknown</span>';
 }
 
@@ -1089,18 +1112,24 @@ function switchChart(type) {
    ============================================================ */
 function dlCSV() {
   if (!lastData) return;
-  const rows = [['Workload','Task','Architecture','Latency_ms','Throughput_GOPS',
-                 'Energy_mJ','Bottleneck','FLOPs','Memory_MB','Arith_Intensity']];
+  const rows = [['Workload','Task','Architecture','Latency_ms',
+                 'EffThroughput_GOPS','PeakCompute_GOPS',
+                 'Energy_mJ','Bottleneck','BoundRatio','HW_Util_pct',
+                 'FLOPs','Memory_MB','Arith_Intensity_ops_per_byte','RidgePoint_ops_per_byte']];
   for (const r of lastData.results) {
     rows.push([
       r.workload, r.task_type, r.architecture,
-      r.latency_ms    != null ? r.latency_ms.toFixed(6)           : '',
-      r.throughput_ops!= null ? (r.throughput_ops/1e9).toFixed(4) : '',
-      r.energy_mj     != null ? r.energy_mj.toFixed(6)            : '',
+      r.latency_ms         != null ? r.latency_ms.toFixed(6)                : '',
+      r.throughput_ops     != null ? (r.throughput_ops/1e9).toFixed(4)       : '',
+      r.peak_compute_ops   != null ? (r.peak_compute_ops/1e9).toFixed(4)     : '',
+      r.energy_mj          != null ? r.energy_mj.toFixed(6)                  : '',
       r.bottleneck,
-      r.ops != null ? r.ops.toExponential(4) : '',
-      r.memory_mb != null ? r.memory_mb.toFixed(2) : '',
-      r.arithmetic_intensity != null ? r.arithmetic_intensity.toFixed(2) : 'inf',
+      r.bound_ratio        != null ? r.bound_ratio.toFixed(4)                : '',
+      r.hw_utilization     != null ? (r.hw_utilization*100).toFixed(2)       : '',
+      r.ops                != null ? r.ops.toExponential(4)                  : '',
+      r.memory_mb          != null ? r.memory_mb.toFixed(2)                  : '',
+      r.arithmetic_intensity != null ? r.arithmetic_intensity.toFixed(4)     : '',
+      r.ridge_point          != null ? r.ridge_point.toFixed(4)              : '',
     ]);
   }
   const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');

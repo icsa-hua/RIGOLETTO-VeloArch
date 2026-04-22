@@ -93,13 +93,91 @@ bottleneck = "compute"  if AI ≥ ridge_point
 
 ### 5 · Preset Architectures
 
-| Name | Parallel Units | Frequency | Bandwidth | Energy/op |
-|------|:--------------:|:---------:|:---------:|:---------:|
-| VPU | 256 | 1 GHz | 50 GB/s | 2 pJ |
-| NPU | 1024 | 1 GHz | 100 GB/s | 1 pJ |
-| VPU+DVFS | 256 | 700 MHz | 50 GB/s | 1.4 pJ |
+| Name | Parallel Units | Frequency | Bandwidth | Energy/op | Notes |
+|------|:--------------:|:---------:|:---------:|:---------:|-------|
+| VPU | 256 | 1 GHz | 50 GB/s | 2 pJ | 28 nm embedded VPU, LPDDR4x |
+| NPU | 1024 | 1 GHz | 100 GB/s | 1 pJ | Systolic-array NPU, LPDDR5 |
+| VPU+DVFS | 256 | 700 MHz | 50 GB/s | 0.98 pJ | Same VPU at 0.7× freq, E∝f² |
+| RTX 5060 | 7680 | 2.572 GHz | 448 GB/s | 7.3 pJ | Blackwell GB206, GDDR7, 145 W TDP |
+
+`parallel_units` for RTX 5060 = 3840 CUDA cores × 2 FP32 ops/cycle (FMA), giving the published 19.75 TFLOPS.
 
 Custom architectures can be added in the UI (any number).
+
+---
+
+## Architecture Inputs → Output Metrics
+
+This section maps every accelerator input parameter to the outputs it drives.
+
+### Input parameters
+
+| Parameter | Unit | What it means |
+|-----------|------|---------------|
+| `parallel_units` | — | Processing elements active each clock cycle. For embedded VPUs/NPUs this is the MAC array width; for CUDA GPUs use `cores × 2` to account for FMA dual-issue. |
+| `frequency` | Hz | Clock rate. Together with `parallel_units` this sets the ceiling on how fast arithmetic can run. |
+| `energy_per_op` | J/op | Energy consumed per floating-point operation. Derived from TDP ÷ peak throughput. Reflects silicon technology node and micro-architecture efficiency. |
+| `energy_per_byte` | J/byte | Energy per byte transferred from/to main memory. Reflects memory technology (LPDDR4 ≈ 5 pJ/B, LPDDR5 ≈ 3 pJ/B, GDDR7 ≈ 20 pJ/B). |
+| `memory_bandwidth` | B/s | Peak sustained data rate from main memory to the accelerator. |
+
+Two derived architecture constants are computed internally:
+
+```
+peak_compute  =  parallel_units × frequency          [ops/s]
+ridge_point   =  peak_compute   / memory_bandwidth   [ops/byte]
+```
+
+### Output metrics and their formulas
+
+**Latency**
+```
+latency = max( ops / peak_compute,  memory_bytes / bandwidth )   [s]
+```
+The roofline model takes the *maximum* of the compute time and the memory time — whichever is larger is the bottleneck. Increasing `parallel_units` or `frequency` shrinks the first term; increasing `memory_bandwidth` shrinks the second.
+
+**Energy**
+```
+energy = ops × energy_per_op  +  memory_bytes × energy_per_byte   [J]
+```
+Two independent cost centres: arithmetic work and memory traffic. A memory-bound workload is dominated by the second term; compute-bound by the first.
+
+**Effective Throughput**
+```
+eff_throughput = ops / latency   [ops/s]
+```
+The actual operations-per-second the workload achieves on this hardware. This is workload-dependent — it equals `peak_compute` only when the workload is perfectly compute-bound. A memory-bound workload reaches `arithmetic_intensity × bandwidth`, which is below peak.
+
+**Bottleneck**
+```
+arithmetic_intensity (AI) = ops / memory_bytes   [ops/byte]
+
+bottleneck = "compute"  if  AI ≥ ridge_point
+             "memory"   if  AI <  ridge_point
+```
+`AI` (the x-axis of the roofline plot) measures how many operations the workload does per byte it moves. The `ridge_point` is the hardware's knee: above it the chip is compute-saturated; below it the memory bus is saturated.
+
+**Bound Ratio**
+```
+bound_ratio = AI / ridge_point
+```
+The *distance* from the ridge point. `bound_ratio > 1` means compute-bound (the further above 1, the more compute-bound); `< 1` means memory-bound. Displayed in the UI as `compute ×N` or `memory ×N`.
+
+**HW Utilization**
+```
+attainable      = min( peak_compute,  AI × bandwidth )   [ops/s]
+hw_utilization  = attainable / peak_compute              [0–1]
+```
+The fraction of theoretical peak compute that can be achieved given the workload's arithmetic intensity. A compute-bound workload reaches 100 %; a memory-bound workload reaches `AI / ridge_point × 100 %`. This is the single number that tells you how well the hardware fits the workload.
+
+### How to use these relationships
+
+| Goal | Lever |
+|------|-------|
+| Reduce latency of a compute-bound workload | Increase `parallel_units` or `frequency` |
+| Reduce latency of a memory-bound workload | Increase `memory_bandwidth` |
+| Reduce energy without changing latency | Lower `energy_per_op` (better process node) or reduce `memory_bytes` (quantisation, pruning) |
+| Push a workload from memory-bound to compute-bound | Increase arithmetic intensity — e.g. larger batch size, fused kernels, or tiling |
+| Compare two architectures on the same workload | Look at `hw_utilization`: the architecture with higher utilisation is a better fit |
 
 ---
 
