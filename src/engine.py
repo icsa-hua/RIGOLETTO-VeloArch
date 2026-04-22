@@ -459,30 +459,35 @@ class ModelParser:
         def _conv2d(module, inp, out):
             nonlocal ops_total, mem_total
             try:
-                b, cin, h, w = inp[0].shape
-                cout, _, kh, kw = module.weight.shape
-                ops_total += 2 * b * h * w * cin * cout * kh * kw
-                mem_total += out.numel() * 4  # count as float32 bytes
+                # Use OUTPUT spatial dims — input dims are wrong for strided/valid-padded convs
+                b, cout, h_out, w_out = out.shape
+                cin_per_group = module.weight.shape[1]   # in_channels / groups
+                kh, kw = module.weight.shape[2], module.weight.shape[3]
+                ops_total += 2 * b * h_out * w_out * cin_per_group * cout * kh * kw
+                # weights + output activations (inputs counted as output of previous layer)
+                mem_total += (module.weight.numel() + out.numel()) * 4
             except Exception:
                 pass
 
         def _conv1d(module, inp, out):
             nonlocal ops_total, mem_total
             try:
-                b, cin, length = inp[0].shape
-                cout, _, k = module.weight.shape
-                ops_total += 2 * b * cin * cout * k * length
-                mem_total += out.numel() * 4
+                b, cout, l_out = out.shape
+                cin_per_group = module.weight.shape[1]
+                k = module.weight.shape[2]
+                ops_total += 2 * b * l_out * cin_per_group * cout * k
+                mem_total += (module.weight.numel() + out.numel()) * 4
             except Exception:
                 pass
 
         def _conv3d(module, inp, out):
             nonlocal ops_total, mem_total
             try:
-                b, cin, d, h, w = inp[0].shape
-                cout, _, kd, kh, kw = module.weight.shape
-                ops_total += 2 * b * d * h * w * cin * cout * kd * kh * kw
-                mem_total += out.numel() * 4
+                b, cout, d_out, h_out, w_out = out.shape
+                cin_per_group = module.weight.shape[1]
+                kd, kh, kw = module.weight.shape[2], module.weight.shape[3], module.weight.shape[4]
+                ops_total += 2 * b * d_out * h_out * w_out * cin_per_group * cout * kd * kh * kw
+                mem_total += (module.weight.numel() + out.numel()) * 4
             except Exception:
                 pass
 
@@ -492,7 +497,7 @@ class ModelParser:
                 flat = inp[0].reshape(-1, inp[0].shape[-1])
                 b = flat.shape[0]
                 ops_total += 2 * b * module.in_features * module.out_features
-                mem_total += out.numel() * 4
+                mem_total += (module.weight.numel() + out.numel()) * 4
             except Exception:
                 pass
 

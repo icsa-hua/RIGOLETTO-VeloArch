@@ -7,255 +7,563 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   <style>
+    /* ── Tokens ───────────────────────────────────────────── */
     :root {
-      --hua: #1a3a6b;
-      --hua-l: #2563eb;
-      --npu: #16a34a;
-      --dvfs: #ea580c;
-      --purp: #7c3aed;
+      --navy:    #1a3a6b;
+      --navy-dk: #122a52;
+      --blue:    #2563eb;
+      --blue-lt: #eff6ff;
+      --green:   #16a34a;
+      --green-lt:#f0fdf4;
+      --orange:  #ea580c;
+      --orange-lt:#fff7ed;
+      --purple:  #7c3aed;
+      --purple-lt:#f3e8ff;
+      --s50:  #f8fafc;
+      --s100: #f1f5f9;
+      --s200: #e2e8f0;
+      --s300: #cbd5e1;
+      --s400: #94a3b8;
+      --s500: #64748b;
+      --s600: #475569;
+      --s700: #334155;
+      --s900: #0f172a;
+      --r: 8px;
+      --sh:    0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.04);
+      --sh-md: 0 4px 6px rgba(0,0,0,.07), 0 2px 4px rgba(0,0,0,.04);
     }
-    body { background:#f1f5f9; font-family:system-ui,-apple-system,sans-serif; }
 
-    /* ── Header ─────────────────────────────── */
-    .app-header { background:var(--hua); color:#fff; padding:.9rem 0; box-shadow:0 2px 8px rgba(0,0,0,.25); }
-    .app-header h1 { font-size:1.5rem; font-weight:700; margin:0; letter-spacing:-.5px; }
-    .app-header .sub { font-size:.78rem; opacity:.7; }
-    .eu-badge { background:#003399; color:#ffd700; font-size:.68rem; padding:.2rem .5rem;
-                border-radius:4px; border:1px solid #ffd700; font-weight:600; letter-spacing:.5px; }
+    /* ── Reset / base ─────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; overflow: hidden; }
+    body {
+      font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+      font-size: 13px;
+      color: var(--s900);
+      background: var(--s100);
+    }
 
-    /* ── Cards ──────────────────────────────── */
-    .panel { background:#fff; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,.07);
-             margin-bottom:1.25rem; overflow:hidden; }
-    .panel-head { background:var(--hua); color:#fff; padding:.7rem 1.2rem; font-weight:600;
-                  font-size:.92rem; display:flex; align-items:center; gap:.5rem; }
-    .panel-body { padding:1.2rem; }
+    /* ── App shell ────────────────────────────────────────── */
+    .va-shell { height: 100vh; display: flex; flex-direction: column; }
 
-    /* ── Workload items ─────────────────────── */
-    .wl-item { border:2px solid #e2e8f0; border-radius:10px; padding:1rem;
-               margin-bottom:.75rem; transition:border-color .2s; }
-    .wl-item:hover { border-color:var(--hua-l); }
-    .wl-num { background:var(--hua); color:#fff; width:24px; height:24px; border-radius:50%;
-              display:inline-flex; align-items:center; justify-content:center;
-              font-size:.75rem; font-weight:700; flex-shrink:0; }
+    /* ── Header ───────────────────────────────────────────── */
+    .va-header {
+      flex-shrink: 0;
+      height: 52px;
+      background: var(--navy);
+      display: flex;
+      align-items: center;
+      padding: 0 1.25rem;
+      gap: .9rem;
+      box-shadow: 0 1px 0 rgba(255,255,255,.07), 0 2px 12px rgba(0,0,0,.35);
+      z-index: 200;
+    }
+    .va-logo {
+      display: flex; align-items: center; gap: .55rem;
+      text-decoration: none; flex-shrink: 0;
+    }
+    .va-logo-icon {
+      width: 30px; height: 30px;
+      background: var(--blue);
+      border-radius: 7px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1rem; color: #fff;
+    }
+    .va-logo-name { font-size: 1rem; font-weight: 700; color: #fff; letter-spacing: -.3px; }
+    .va-logo-sub  { font-size: .68rem; color: rgba(255,255,255,.45); margin-left: .15rem; }
+    .hd-div { width: 1px; height: 18px; background: rgba(255,255,255,.14); flex-shrink: 0; }
+    .hd-meta { font-size: .72rem; color: rgba(255,255,255,.4); white-space: nowrap;
+               overflow: hidden; text-overflow: ellipsis; }
+    .eu-badge {
+      margin-left: auto; flex-shrink: 0;
+      background: #003399; color: #ffd700;
+      font-size: .67rem; font-weight: 700;
+      padding: .22rem .55rem; border-radius: 5px;
+      border: 1px solid rgba(255,215,0,.35); letter-spacing: .6px;
+    }
 
-    /* ── Preset tiles ───────────────────────── */
-    .preset-tile { border:2px solid #e2e8f0; border-radius:10px; padding:.8rem 1rem;
-                   cursor:pointer; transition:all .2s; user-select:none; flex:1 1 0; min-width:120px; }
-    .preset-tile:hover { border-color:var(--hua-l); }
-    .preset-tile.sel { border-color:var(--hua-l); background:#eff6ff; }
-    .preset-tile.npu.sel  { border-color:var(--npu);  background:#f0fdf4; }
-    .preset-tile.dvfs.sel { border-color:var(--dvfs); background:#fff7ed; }
-    .pt-name { font-weight:700; font-size:.9rem; }
-    .pt-meta { font-size:.7rem; color:#64748b; line-height:1.5; margin-top:.15rem; }
+    /* ── Body ─────────────────────────────────────────────── */
+    .va-body { flex: 1; display: flex; overflow: hidden; min-height: 0; }
 
-    /* ── Run button ─────────────────────────── */
-    .btn-run { background:var(--hua); border:none; color:#fff; padding:.7rem 2rem;
-               font-size:1rem; font-weight:600; border-radius:8px; transition:background .2s; }
-    .btn-run:hover:not(:disabled) { background:#12295a; color:#fff; }
-    .btn-run:disabled { background:#94a3b8; cursor:not-allowed; }
+    /* ── Sidebar ──────────────────────────────────────────── */
+    .va-sidebar {
+      width: 340px; flex-shrink: 0;
+      display: flex; flex-direction: column;
+      background: #fff;
+      border-right: 1px solid var(--s200);
+      overflow: hidden;
+    }
+    .sb-scroll { flex: 1; overflow-y: auto; overflow-x: hidden; }
+    .sb-scroll::-webkit-scrollbar { width: 3px; }
+    .sb-scroll::-webkit-scrollbar-thumb { background: var(--s200); border-radius: 2px; }
+    .sb-footer {
+      flex-shrink: 0;
+      padding: .875rem 1rem;
+      border-top: 1px solid var(--s100);
+      background: #fff;
+    }
+    .sb-section {
+      padding: 1rem;
+      border-bottom: 1px solid var(--s100);
+    }
+    .sb-title {
+      font-size: .66rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 1px;
+      color: var(--s400);
+      margin-bottom: .75rem;
+      display: flex; align-items: center; gap: .4rem;
+    }
+    .sb-title::after { content:''; flex:1; height:1px; background:var(--s200); }
 
-    /* ── Results ────────────────────────────── */
-    .metric-card { background:#fff; border-radius:10px; padding:.9rem 1rem;
-                   box-shadow:0 2px 6px rgba(0,0,0,.07); text-align:center; }
-    .metric-val { font-size:1.4rem; font-weight:700; color:var(--hua); }
-    .metric-lbl { font-size:.72rem; color:#64748b; text-transform:uppercase; letter-spacing:.5px; }
+    /* ── Workload cards ───────────────────────────────────── */
+    .wl-item {
+      background: var(--s50);
+      border: 1px solid var(--s200);
+      border-left: 3px solid var(--blue);
+      border-radius: var(--r);
+      padding: .875rem;
+      margin-bottom: .5rem;
+      transition: box-shadow .15s;
+    }
+    .wl-item:hover { box-shadow: var(--sh-md); }
+    .wl-num {
+      width: 20px; height: 20px;
+      background: var(--navy); color: #fff;
+      border-radius: 50%;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: .7rem; font-weight: 700; flex-shrink: 0;
+    }
 
-    /* ── Results table ──────────────────────── */
-    .res-table { font-size:.83rem; border-collapse:collapse; width:100%; }
+    /* ── Mode toggle ──────────────────────────────────────── */
+    .mode-btn { font-size: .75rem; padding: .28rem .6rem; border-radius: 5px; }
+
+    /* ── Code box ─────────────────────────────────────────── */
+    .code-box {
+      border: 1.5px dashed var(--s300);
+      border-radius: 6px; padding: .65rem;
+      background: #fff; margin-top: .5rem;
+    }
+    .code-hint { font-size: .7rem; color: var(--s500); line-height: 1.55; }
+
+    /* ── Architecture tiles ───────────────────────────────── */
+    .arch-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: .5rem; margin-bottom: .75rem; }
+    .preset-tile {
+      position: relative;
+      border: 1.5px solid var(--s200);
+      border-radius: var(--r);
+      padding: .7rem .6rem;
+      cursor: pointer; user-select: none;
+      background: #fff;
+      transition: all .15s;
+    }
+    .preset-tile:hover { border-color: var(--s300); box-shadow: var(--sh); }
+    .preset-tile.sel     { border-color: var(--blue);   background: var(--blue-lt); }
+    .preset-tile.npu.sel { border-color: var(--green);  background: var(--green-lt); }
+    .preset-tile.dvfs.sel{ border-color: var(--orange); background: var(--orange-lt); }
+    .pt-check {
+      position: absolute; top: 5px; right: 5px;
+      width: 15px; height: 15px; border-radius: 50%;
+      border: 1.5px solid var(--s300); background: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .6rem; color: transparent; transition: all .15s;
+    }
+    .preset-tile.sel     .pt-check { background: var(--blue);   border-color: var(--blue);   color: #fff; }
+    .preset-tile.npu.sel .pt-check { background: var(--green);  border-color: var(--green);  color: #fff; }
+    .preset-tile.dvfs.sel .pt-check{ background: var(--orange); border-color: var(--orange); color: #fff; }
+    .pt-icon { font-size: 1.1rem; margin-bottom: .3rem; }
+    .pt-name { font-size: .78rem; font-weight: 700; color: var(--s900); }
+    .pt-meta { font-size: .67rem; color: var(--s500); line-height: 1.55; margin-top: .1rem; }
+
+    /* ── Custom arch cards ────────────────────────────────── */
+    #custom-arch-list .wl-item { border-left-color: var(--purple); }
+
+    /* ── Add buttons ──────────────────────────────────────── */
+    .btn-add {
+      width: 100%; background: none;
+      border: 1.5px dashed var(--s300);
+      color: var(--s500);
+      font-size: .78rem; font-weight: 500;
+      padding: .42rem; border-radius: 6px; cursor: pointer;
+      transition: all .15s;
+      display: flex; align-items: center; justify-content: center; gap: .3rem;
+      margin-top: .35rem;
+    }
+    .btn-add:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-lt); }
+
+    /* ── Run button ───────────────────────────────────────── */
+    .btn-run {
+      width: 100%;
+      background: linear-gradient(135deg, var(--navy-dk) 0%, var(--blue) 100%);
+      border: none; color: #fff;
+      padding: .68rem 1rem;
+      font-size: .9rem; font-weight: 600;
+      border-radius: var(--r); cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: .45rem;
+      transition: opacity .15s, transform .1s;
+      letter-spacing: -.1px;
+    }
+    .btn-run:hover:not(:disabled) { opacity: .9; transform: translateY(-1px); }
+    .btn-run:active:not(:disabled) { transform: translateY(0); }
+    .btn-run:disabled { background: var(--s300); cursor: not-allowed; transform: none; }
+
+    /* ── Main content ─────────────────────────────────────── */
+    .va-main {
+      flex: 1; overflow-y: auto; padding: 1.25rem;
+      background: var(--s100); min-width: 0;
+    }
+    .va-main::-webkit-scrollbar { width: 4px; }
+    .va-main::-webkit-scrollbar-thumb { background: var(--s300); border-radius: 2px; }
+
+    /* ── Error banner ─────────────────────────────────────── */
+    .err-banner {
+      background: #fef2f2; border: 1px solid #fecaca;
+      border-left: 3px solid #ef4444;
+      border-radius: var(--r);
+      padding: .7rem 1rem; margin-bottom: 1rem;
+      display: flex; align-items: flex-start; gap: .6rem;
+      font-size: .82rem; color: #991b1b;
+    }
+    .err-banner.d-none { display: none !important; }
+    .err-close {
+      margin-left: auto; background: none; border: none;
+      color: #991b1b; cursor: pointer; font-size: 1rem; padding: 0;
+      opacity: .55; transition: opacity .15s;
+    }
+    .err-close:hover { opacity: 1; }
+
+    /* ── Placeholder ──────────────────────────────────────── */
+    .ph-card {
+      background: #fff; border: 1px solid var(--s200);
+      border-radius: 12px; box-shadow: var(--sh);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      min-height: calc(100vh - 52px - 2.5rem);
+      padding: 3rem 2rem; text-align: center;
+    }
+    .ph-icon {
+      width: 68px; height: 68px;
+      background: var(--s100); border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.9rem; color: var(--s400); margin-bottom: 1.1rem;
+    }
+    .ph-steps { display: flex; align-items: flex-start; gap: 0; margin-top: 1.5rem; }
+    .ph-step { display: flex; flex-direction: column; align-items: center; width: 110px; }
+    .ph-step-ic {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: var(--blue-lt); border: 1.5px solid #bfdbfe;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .9rem; color: var(--blue); margin-bottom: .45rem;
+    }
+    .ph-step-lb { font-size: .72rem; color: var(--s500); font-weight: 500; line-height: 1.4; }
+    .ph-arr { display: flex; align-items: center; padding-top: 17px; color: var(--s300); font-size: .85rem; }
+    .ph-fmts {
+      margin-top: 1.25rem; text-align: left;
+      background: var(--s50); border: 1px solid var(--s200);
+      border-radius: var(--r); padding: .7rem 1rem;
+      display: inline-block; font-size: .77rem; color: var(--s600);
+    }
+    .ph-fmts ul { margin: .3rem 0 0; padding-left: 1.1rem; }
+    .ph-fmts li { margin-bottom: .2rem; }
+
+    /* ── Results ──────────────────────────────────────────── */
+    #results { display: none; }
+    @keyframes fadeUp {
+      from { opacity:0; transform:translateY(10px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+    #results.vis { animation: fadeUp .25s ease; }
+
+    /* ── KPI grid ─────────────────────────────────────────── */
+    .kpi-grid {
+      display: grid; grid-template-columns: repeat(4,1fr);
+      gap: .75rem; margin-bottom: .875rem;
+    }
+    .kpi-card {
+      background: #fff; border: 1px solid var(--s200);
+      border-radius: var(--r); box-shadow: var(--sh);
+      padding: .875rem 1rem;
+      display: flex; align-items: center; gap: .75rem;
+    }
+    .kpi-ico {
+      width: 36px; height: 36px; flex-shrink: 0;
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1rem;
+    }
+    .kpi-ico.bl { background: var(--blue-lt);   color: var(--blue); }
+    .kpi-ico.gr { background: var(--green-lt);  color: var(--green); }
+    .kpi-ico.or { background: var(--orange-lt); color: var(--orange); }
+    .kpi-ico.pu { background: var(--purple-lt); color: var(--purple); }
+    .kpi-val { font-size: 1.25rem; font-weight: 700; color: var(--navy); line-height: 1; }
+    .kpi-lbl { font-size: .66rem; font-weight: 700; text-transform: uppercase;
+               letter-spacing: .5px; color: var(--s400); margin-top: .2rem; }
+    .kpi-sub { font-size: .7rem; color: var(--s500); margin-top: .1rem; }
+
+    /* ── Cards ────────────────────────────────────────────── */
+    .va-card {
+      background: #fff; border: 1px solid var(--s200);
+      border-radius: var(--r); box-shadow: var(--sh);
+      margin-bottom: .875rem; overflow: hidden;
+    }
+    .va-card-hd {
+      padding: .65rem 1rem; border-bottom: 1px solid var(--s100);
+      display: flex; align-items: center; gap: .45rem;
+      font-size: .8rem; font-weight: 600; color: var(--s700);
+    }
+    .hd-ic { color: var(--s400); font-size: .88rem; }
+    .va-card-bd { padding: 1rem; }
+
+    /* ── Results table ────────────────────────────────────── */
+    .res-table { width: 100%; border-collapse: collapse; font-size: .8rem; }
     .res-table thead th {
-      background:var(--hua); color:#fff; font-weight:600; padding:.55rem .8rem;
-      white-space:nowrap; position:sticky; top:0; z-index:1;
+      background: var(--s50); color: var(--s600);
+      font-weight: 700; font-size: .67rem;
+      text-transform: uppercase; letter-spacing: .5px;
+      padding: .55rem .875rem; white-space: nowrap;
+      border-bottom: 2px solid var(--s200);
+      position: sticky; top: 0; z-index: 1;
     }
-    .res-table tbody td { padding:.5rem .8rem; border-bottom:1px solid #f1f5f9; vertical-align:middle; }
-    .res-table tbody tr:last-child td { border-bottom:none; }
+    .res-table tbody td {
+      padding: .6rem .875rem;
+      border-bottom: 1px solid var(--s100);
+      vertical-align: middle;
+    }
+    .res-table tbody tr:hover td { background: var(--s50); }
+    .res-table tbody tr:last-child td { border-bottom: none; }
+    .wl-cell {
+      background: var(--s50) !important;
+      border-right: 2px solid var(--s200) !important;
+      vertical-align: middle !important; min-width: 140px;
+    }
+    .wl-sep td { padding: 0 !important; height: 2px; background: var(--s200); }
+    .cell-best { background: var(--green-lt) !important; }
 
-    /* workload name cell */
-    .wl-cell { background:#f8fafc !important; border-right:3px solid #e2e8f0 !important;
-               vertical-align:middle !important; min-width:150px; }
-    /* separator between workload groups */
-    .wl-sep td { padding:0 !important; height:3px; background:#e2e8f0; }
+    /* ── Mini bar ─────────────────────────────────────────── */
+    .bar-wrap { display:flex; align-items:center; gap:.4rem; white-space:nowrap; }
+    .bar-bg   { width:48px; height:3px; background:var(--s200); border-radius:2px; flex-shrink:0; overflow:hidden; }
+    .bar-fill { height:3px; border-radius:2px; }
 
-    /* best value highlight */
-    .cell-best { background:#f0fdf4 !important; }
+    /* ── Badges ───────────────────────────────────────────── */
+    .ap { display:inline-block; padding:.15rem .5rem; border-radius:4px; font-size:.75rem; font-weight:600; }
+    .ap-VPU    { background:#dbeafe; color:#1e40af; }
+    .ap-NPU    { background:#dcfce7; color:#166534; }
+    .ap-DVFS   { background:#ffedd5; color:#9a3412; }
+    .ap-custom { background:#f3e8ff; color:#6b21a8; }
 
-    /* mini bar */
-    .bar-wrap { display:flex; align-items:center; gap:.45rem; white-space:nowrap; }
-    .bar-bg   { width:44px; height:4px; background:#e2e8f0; border-radius:2px;
-                flex-shrink:0; overflow:hidden; }
-    .bar-fill { height:4px; border-radius:2px; }
-
-    /* architecture pills */
-    .ap { display:inline-block; padding:.15rem .5rem; border-radius:4px;
-          font-size:.78rem; font-weight:600; }
-    .ap-VPU       { background:#dbeafe; color:#1e40af; }
-    .ap-NPU       { background:#dcfce7; color:#166534; }
-    .ap-DVFS      { background:#ffedd5; color:#9a3412; }
-    .ap-custom    { background:#f3e8ff; color:#6b21a8; }
-
-    /* bottleneck badges */
-    .bb { font-size:.75rem; padding:.2rem .5rem; border-radius:20px; font-weight:600; }
+    .bb { font-size:.72rem; padding:.2rem .5rem; border-radius:20px; font-weight:600;
+          display:inline-flex; align-items:center; gap:.25rem; }
     .bb-compute { background:#dbeafe; color:#1e40af; }
     .bb-memory  { background:#ffedd5; color:#9a3412; }
-    .bb-unknown { background:#f1f5f9; color:#64748b; }
+    .bb-unknown { background:var(--s100); color:var(--s500); }
 
-    /* task badges */
-    .tb { display:inline-block; padding:.15rem .45rem; border-radius:12px; font-size:.72rem; font-weight:600; }
+    .tb { display:inline-block; padding:.15rem .45rem; border-radius:12px; font-size:.7rem; font-weight:600; }
     .tb-classification { background:#dbeafe; color:#1e40af; }
     .tb-detection      { background:#dcfce7; color:#166534; }
     .tb-segmentation   { background:#fce7f3; color:#9d174d; }
     .tb-custom         { background:#f3e8ff; color:#6b21a8; }
 
-    /* chart tabs */
-    .ctab { background:none; border:none; padding:.45rem 1rem; font-weight:600; color:#64748b;
-            border-bottom:3px solid transparent; cursor:pointer; transition:all .15s; }
-    .ctab.active { color:var(--hua); border-bottom-color:var(--hua); }
-    .chart-box { position:relative; height:290px; }
+    /* ── Chart tabs ───────────────────────────────────────── */
+    .chart-tabs {
+      display:flex; gap:.2rem;
+      background:var(--s100); border-radius:6px; padding:.2rem;
+    }
+    .ctab {
+      background:none; border:none;
+      padding:.3rem .75rem; font-size:.77rem; font-weight:600;
+      color:var(--s500); border-radius:5px; cursor:pointer; transition:all .15s;
+    }
+    .ctab:hover { color:var(--s700); }
+    .ctab.active { background:#fff; color:var(--navy); box-shadow:var(--sh); }
+    .chart-box { position:relative; height:275px; margin-top:.75rem; }
 
-    /* code upload box */
-    .code-box { border:1.5px dashed #cbd5e1; border-radius:8px; padding:.7rem;
-                background:#f8fafc; margin-top:.5rem; }
-    .code-hint { font-size:.72rem; color:#64748b; }
+    /* ── Export button ────────────────────────────────────── */
+    .btn-exp {
+      background:none; border:1px solid var(--s200);
+      color:var(--s600); font-size:.75rem; font-weight:600;
+      padding:.28rem .65rem; border-radius:5px; cursor:pointer;
+      display:flex; align-items:center; gap:.3rem; transition:all .15s;
+    }
+    .btn-exp:hover { background:var(--s50); border-color:var(--s300); }
 
-    /* loading overlay */
-    #overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.48); z-index:9999;
-               align-items:center; justify-content:center; flex-direction:column; gap:1rem; }
+    /* ── Forms ────────────────────────────────────────────── */
+    label { font-size:.75rem; font-weight:600; color:var(--s600); margin-bottom:.2rem; display:block; }
+    .form-control, .form-select {
+      font-size:.8rem; border-color:var(--s200); border-radius:5px;
+      padding:.35rem .6rem; transition:border-color .15s, box-shadow .15s;
+    }
+    .form-control:focus, .form-select:focus {
+      border-color:var(--blue); box-shadow:0 0 0 3px rgba(37,99,235,.1);
+    }
+    .form-text { font-size:.7rem; color:var(--s400); margin-top:.15rem; }
+
+    /* ── Loading overlay ──────────────────────────────────── */
+    #overlay {
+      display:none; position:fixed; inset:0;
+      background:rgba(15,23,42,.65);
+      backdrop-filter:blur(3px);
+      z-index:9999;
+      align-items:center; justify-content:center;
+      flex-direction:column;
+    }
     #overlay.on { display:flex; }
-    .spin { width:52px; height:52px; border:5px solid rgba(255,255,255,.3);
-            border-top-color:#fff; border-radius:50%; animation:sp .8s linear infinite; }
+    .ov-card {
+      background:rgba(255,255,255,.07);
+      border:1px solid rgba(255,255,255,.12);
+      border-radius:14px; padding:1.75rem 2.25rem;
+      text-align:center; backdrop-filter:blur(10px);
+    }
+    .spin {
+      width:42px; height:42px; margin:0 auto 1rem;
+      border:3px solid rgba(255,255,255,.18);
+      border-top-color:#fff; border-radius:50%;
+      animation:sp .75s linear infinite;
+    }
     @keyframes sp { to { transform:rotate(360deg); } }
-
-    .mode-btn { font-size:.8rem; padding:.3rem .7rem; }
-    label { font-size:.83rem; font-weight:600; color:#374151; margin-bottom:.2rem; }
-    .form-control, .form-select { font-size:.83rem; }
-    .form-text { font-size:.72rem; }
   </style>
 </head>
 <body>
 
+<!-- Loading overlay -->
 <div id="overlay">
-  <div class="spin"></div>
-  <div style="color:#fff;font-size:1rem;font-weight:600" id="load-msg">Analysing…</div>
-  <div style="color:rgba(255,255,255,.6);font-size:.78rem">Large models may take 15–30 s</div>
+  <div class="ov-card">
+    <div class="spin"></div>
+    <div style="color:#fff;font-size:.95rem;font-weight:600" id="load-msg">Analysing model…</div>
+    <div style="color:rgba(255,255,255,.45);font-size:.75rem;margin-top:.3rem">Large models may take 15–30 s</div>
+  </div>
 </div>
 
-<header class="app-header">
-  <div class="container d-flex align-items-center justify-content-between flex-wrap gap-2">
-    <div>
-      <h1><i class="bi bi-cpu-fill me-2"></i>VeloArch Evaluator</h1>
-      <div class="sub">AI Accelerator Architecture Analysis &nbsp;·&nbsp; Harokopio University of Athens</div>
-    </div>
+<div class="va-shell">
+
+  <!-- ═══ Header ═══════════════════════════════════════════ -->
+  <header class="va-header">
+    <a class="va-logo" href="#">
+      <div class="va-logo-icon"><i class="bi bi-cpu-fill"></i></div>
+      <span class="va-logo-name">VeloArch<span class="va-logo-sub">Evaluator</span></span>
+    </a>
+    <div class="hd-div"></div>
+    <span class="hd-meta">AI Accelerator Architecture Analysis &nbsp;·&nbsp; Harokopio University of Athens</span>
     <span class="eu-badge">★ EU &nbsp;RIGOLETTO</span>
-  </div>
-</header>
+  </header>
 
-<div class="container py-4">
+  <!-- ═══ Body ═════════════════════════════════════════════ -->
+  <div class="va-body">
 
-  <div id="err-alert" class="alert alert-danger alert-dismissible d-none" role="alert">
-    <i class="bi bi-exclamation-triangle-fill me-2"></i>
-    <span id="err-msg"></span>
-    <button type="button" class="btn-close" onclick="hideErr()"></button>
-  </div>
+    <!-- ── Sidebar ──────────────────────────────────────── -->
+    <aside class="va-sidebar">
+      <div class="sb-scroll">
 
-  <div class="row g-4">
-
-    <!-- ═══════════════ LEFT — CONFIG ═══════════════ -->
-    <div class="col-lg-5">
-
-      <!-- Workloads -->
-      <div class="panel">
-        <div class="panel-head">
-          <i class="bi bi-diagram-3"></i> Workloads
-          <span class="ms-auto" style="font-size:.75rem;font-weight:400;opacity:.7">One or more models</span>
-        </div>
-        <div class="panel-body">
+        <!-- Workloads section -->
+        <div class="sb-section">
+          <div class="sb-title"><i class="bi bi-diagram-3"></i> Workloads</div>
           <div id="wl-list"></div>
-          <button class="btn btn-outline-secondary btn-sm mt-1" onclick="addWl()">
-            <i class="bi bi-plus-circle me-1"></i>Add Workload
+          <button class="btn-add" onclick="addWl()">
+            <i class="bi bi-plus-circle"></i> Add Workload
           </button>
         </div>
-      </div>
 
-      <!-- Architectures -->
-      <div class="panel">
-        <div class="panel-head">
-          <i class="bi bi-motherboard"></i> Architectures
-          <span class="ms-auto" style="font-size:.75rem;font-weight:400;opacity:.7">Click to toggle</span>
-        </div>
-        <div class="panel-body">
-          <div class="d-flex flex-wrap gap-2 mb-3">
+        <!-- Architectures section -->
+        <div class="sb-section">
+          <div class="sb-title"><i class="bi bi-motherboard"></i> Target Architectures</div>
+          <div class="arch-grid">
             <div class="preset-tile sel" id="tile-VPU" onclick="togglePreset('VPU')">
-              <div class="d-flex align-items-center gap-1">
-                <i class="bi bi-grid-3x3-gap-fill" style="color:var(--hua-l)"></i>
-                <span class="pt-name">VPU</span>
-              </div>
-              <div class="pt-meta">256 units · 1 GHz<br>50 GB/s · 2 pJ/op</div>
+              <div class="pt-check"><i class="bi bi-check"></i></div>
+              <div class="pt-icon" style="color:var(--blue)"><i class="bi bi-grid-3x3-gap-fill"></i></div>
+              <div class="pt-name">VPU</div>
+              <div class="pt-meta">256 u · 1 GHz<br>50 GB/s · 2 pJ</div>
             </div>
             <div class="preset-tile npu sel" id="tile-NPU" onclick="togglePreset('NPU')">
-              <div class="d-flex align-items-center gap-1">
-                <i class="bi bi-lightning-charge-fill" style="color:var(--npu)"></i>
-                <span class="pt-name">NPU</span>
-              </div>
-              <div class="pt-meta">1024 units · 1 GHz<br>100 GB/s · 1 pJ/op</div>
+              <div class="pt-check"><i class="bi bi-check"></i></div>
+              <div class="pt-icon" style="color:var(--green)"><i class="bi bi-lightning-charge-fill"></i></div>
+              <div class="pt-name">NPU</div>
+              <div class="pt-meta">1024 u · 1 GHz<br>100 GB/s · 1 pJ</div>
             </div>
             <div class="preset-tile dvfs sel" id="tile-VPU_DVFS" onclick="togglePreset('VPU_DVFS')">
-              <div class="d-flex align-items-center gap-1">
-                <i class="bi bi-battery-half" style="color:var(--dvfs)"></i>
-                <span class="pt-name">VPU+DVFS</span>
-              </div>
-              <div class="pt-meta">256 units · 700 MHz<br>50 GB/s · 1.4 pJ/op</div>
+              <div class="pt-check"><i class="bi bi-check"></i></div>
+              <div class="pt-icon" style="color:var(--orange)"><i class="bi bi-battery-half"></i></div>
+              <div class="pt-name">VPU+DVFS</div>
+              <div class="pt-meta">256 u · 700 MHz<br>50 GB/s · 1.4 pJ</div>
             </div>
           </div>
           <div id="custom-arch-list"></div>
-          <button class="btn btn-outline-secondary btn-sm" onclick="addCustomArch()">
-            <i class="bi bi-sliders me-1"></i>Add Custom Architecture
+          <button class="btn-add" onclick="addCustomArch()">
+            <i class="bi bi-sliders"></i> Add Custom Architecture
           </button>
         </div>
-      </div>
 
-      <div class="d-grid">
-        <button class="btn btn-run" id="run-btn" onclick="runEval()">
-          <i class="bi bi-play-circle-fill me-2"></i>Run Evaluation
+      </div><!-- /sb-scroll -->
+
+      <!-- Sticky run button -->
+      <div class="sb-footer">
+        <button class="btn-run" id="run-btn" onclick="runEval()">
+          <i class="bi bi-play-circle-fill"></i> Run Evaluation
         </button>
       </div>
-    </div>
+    </aside>
 
-    <!-- ═══════════════ RIGHT — RESULTS ═══════════════ -->
-    <div class="col-lg-7">
+    <!-- ── Main ─────────────────────────────────────────── -->
+    <main class="va-main">
+
+      <!-- Error -->
+      <div id="err-alert" class="err-banner d-none">
+        <i class="bi bi-exclamation-triangle-fill" style="flex-shrink:0;margin-top:.05rem"></i>
+        <span id="err-msg"></span>
+        <button class="err-close" onclick="hideErr()"><i class="bi bi-x-lg"></i></button>
+      </div>
 
       <!-- Placeholder -->
-      <div id="placeholder" class="panel">
-        <div class="panel-body text-center py-5">
-          <i class="bi bi-bar-chart-line" style="font-size:3rem;color:#cbd5e1"></i>
-          <p class="mt-3 text-muted mb-2">Configure workloads and architectures,<br>then click <strong>Run Evaluation</strong>.</p>
-          <div class="text-start d-inline-block" style="font-size:.8rem;color:#64748b">
-            <strong>Supported formats:</strong>
-            <ul class="mb-0 mt-1" style="padding-left:1.2rem">
-              <li><code>torch.save(model, path)</code> — no code file needed</li>
-              <li>YOLO / ultralytics <code>.pt</code> — no code file needed</li>
-              <li>State-dict <code>.pth</code> — upload <code>.py</code> code file too</li>
-              <li>Manual FLOPs + Memory input</li>
-            </ul>
+      <div id="placeholder" class="ph-card">
+        <div class="ph-icon"><i class="bi bi-bar-chart-line"></i></div>
+        <h2 style="font-size:1.05rem;font-weight:700;margin:0 0 .35rem;color:var(--s900)">Ready to Analyse</h2>
+        <p style="font-size:.82rem;color:var(--s500);margin:0;max-width:340px;line-height:1.6">
+          Upload your PyTorch models, select target architectures,<br>and run the evaluation.
+        </p>
+        <div class="ph-steps">
+          <div class="ph-step">
+            <div class="ph-step-ic"><i class="bi bi-upload"></i></div>
+            <div class="ph-step-lb">Upload model<br>weights</div>
           </div>
+          <div class="ph-arr"><i class="bi bi-arrow-right"></i></div>
+          <div class="ph-step">
+            <div class="ph-step-ic"><i class="bi bi-motherboard"></i></div>
+            <div class="ph-step-lb">Select target<br>architecture</div>
+          </div>
+          <div class="ph-arr"><i class="bi bi-arrow-right"></i></div>
+          <div class="ph-step">
+            <div class="ph-step-ic"><i class="bi bi-play-fill"></i></div>
+            <div class="ph-step-lb">Run<br>evaluation</div>
+          </div>
+          <div class="ph-arr"><i class="bi bi-arrow-right"></i></div>
+          <div class="ph-step">
+            <div class="ph-step-ic"><i class="bi bi-graph-up-arrow"></i></div>
+            <div class="ph-step-lb">View results<br>here</div>
+          </div>
+        </div>
+        <div class="ph-fmts">
+          <strong style="font-size:.75rem;color:var(--s700)">Supported model formats</strong>
+          <ul>
+            <li><code>torch.save(model, path)</code> — no code file needed</li>
+            <li>YOLO / ultralytics <code>.pt</code> — no code file needed</li>
+            <li>State-dict <code>.pth</code> — upload <code>.py</code> class file too</li>
+            <li>Manual FLOPs + Memory entry</li>
+          </ul>
         </div>
       </div>
 
-      <!-- Results (hidden until first run) -->
-      <div id="results" style="display:none">
+      <!-- Results -->
+      <div id="results">
 
-        <!-- Summary cards -->
-        <div class="row g-3 mb-3" id="summary-cards"></div>
+        <div class="kpi-grid" id="summary-cards"></div>
 
-        <!-- Main results table -->
-        <div class="panel mb-3">
-          <div class="panel-head">
-            <i class="bi bi-table"></i> Evaluation Results
-            <button class="btn btn-sm ms-auto"
-              style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3)"
-              onclick="dlCSV()">
-              <i class="bi bi-download me-1"></i>CSV
+        <!-- Evaluation table -->
+        <div class="va-card">
+          <div class="va-card-hd">
+            <i class="bi bi-table hd-ic"></i>
+            Evaluation Results
+            <button class="btn-exp ms-auto" onclick="dlCSV()">
+              <i class="bi bi-download"></i> Export CSV
             </button>
           </div>
-          <div style="overflow-x:auto; max-height:480px; overflow-y:auto;">
+          <div style="overflow-x:auto">
             <table class="res-table">
               <thead>
                 <tr>
@@ -272,22 +580,28 @@
           </div>
         </div>
 
-        <!-- Charts -->
-        <div class="panel mb-3">
-          <div class="panel-head"><i class="bi bi-bar-chart-fill"></i> Charts</div>
-          <div class="panel-body">
-            <div class="d-flex border-bottom mb-3">
-              <button class="ctab active" id="tab-latency"    onclick="switchChart('latency')">Latency (ms)</button>
-              <button class="ctab"         id="tab-energy"     onclick="switchChart('energy')">Energy (mJ)</button>
-              <button class="ctab"         id="tab-throughput" onclick="switchChart('throughput')">Throughput (GOPS)</button>
+        <!-- Chart -->
+        <div class="va-card">
+          <div class="va-card-hd">
+            <i class="bi bi-bar-chart-fill hd-ic"></i>
+            Performance Charts
+            <div class="chart-tabs ms-auto">
+              <button class="ctab active" id="tab-latency"    onclick="switchChart('latency')">Latency</button>
+              <button class="ctab"         id="tab-energy"     onclick="switchChart('energy')">Energy</button>
+              <button class="ctab"         id="tab-throughput" onclick="switchChart('throughput')">Throughput</button>
             </div>
+          </div>
+          <div class="va-card-bd">
             <div class="chart-box"><canvas id="main-chart"></canvas></div>
           </div>
         </div>
 
         <!-- Workload details -->
-        <div class="panel">
-          <div class="panel-head"><i class="bi bi-info-circle"></i> Workload Characteristics</div>
+        <div class="va-card">
+          <div class="va-card-hd">
+            <i class="bi bi-info-circle hd-ic"></i>
+            Workload Characteristics
+          </div>
           <div style="overflow-x:auto">
             <table class="res-table">
               <thead><tr>
@@ -299,9 +613,9 @@
         </div>
 
       </div><!-- /results -->
-    </div>
-  </div>
-</div>
+    </main>
+  </div><!-- /va-body -->
+</div><!-- /va-shell -->
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
@@ -313,9 +627,9 @@ let wlIdx = 0, caIdx = 0;
 const selPresets = new Set(['VPU', 'NPU', 'VPU_DVFS']);
 let chart = null, lastData = null, activeChart = 'latency';
 
-const ARCH_COLORS = { 'VPU':'#2563eb','NPU':'#16a34a','VPU+DVFS':'#ea580c' };
+const ARCH_COLORS = { 'VPU':'#2563eb', 'NPU':'#16a34a', 'VPU+DVFS':'#ea580c' };
 const FB_COLORS   = ['#7c3aed','#db2777','#0891b2','#65a30d','#b45309'];
-const archColor   = (n,i) => ARCH_COLORS[n] || FB_COLORS[i % FB_COLORS.length];
+const archColor   = (n, i) => ARCH_COLORS[n] || FB_COLORS[i % FB_COLORS.length];
 
 /* ============================================================
    Workloads
@@ -326,8 +640,8 @@ function addWl() {
   div.className = 'wl-item'; div.id = `wl-${id}`;
   div.innerHTML = `
     <div class="d-flex align-items-center mb-2 gap-2">
-      <span class="wl-num">${id+1}</span>
-      <span class="fw-semibold" style="font-size:.88rem">Workload ${id+1}</span>
+      <span class="wl-num">${id + 1}</span>
+      <span style="font-size:.85rem;font-weight:600;color:var(--s700)">Workload ${id + 1}</span>
       <button class="btn btn-sm btn-link text-danger ms-auto p-0" onclick="rmWl(${id})">
         <i class="bi bi-x-lg"></i>
       </button>
@@ -354,46 +668,41 @@ function addWl() {
         <i class="bi bi-upload me-1"></i>Upload Model
       </button>
       <button class="btn btn-sm btn-outline-secondary mode-btn" id="wl-btn-m-${id}" onclick="setMode(${id},'manual')">
-        <i class="bi bi-pencil me-1"></i>Manual Input
+        <i class="bi bi-pencil me-1"></i>Manual
       </button>
     </div>
 
-    <!-- File panel -->
     <div id="wl-fp-${id}">
       <div class="mb-2">
-        <label>Weights <span class="text-muted fw-normal">(.pt / .pth)</span> <span class="text-danger">*</span></label>
+        <label>Weights <span style="font-weight:400;color:var(--s400)">(.pt / .pth)</span> <span class="text-danger">*</span></label>
         <input type="file" class="form-control" id="wl-w-${id}" accept=".pt,.pth">
-        <div class="form-text">Use <code>torch.save(model, path)</code> for best compat.</div>
+        <div class="form-text">Full model or state dict supported.</div>
       </div>
       <div class="code-box">
         <div class="d-flex align-items-center gap-2 mb-1">
-          <span style="font-size:.8rem;font-weight:600"><i class="bi bi-file-code me-1"></i>Model Class Code</span>
-          <span class="badge bg-secondary" style="font-size:.66rem">optional</span>
+          <span style="font-size:.76rem;font-weight:600;color:var(--s700)"><i class="bi bi-file-code me-1"></i>Model Class Code</span>
+          <span class="badge bg-secondary" style="font-size:.64rem">optional</span>
         </div>
         <input type="file" class="form-control form-control-sm" id="wl-c-${id}" accept=".py">
-        <div class="code-hint mt-1">
-          Only needed for state-dict-only .pth files.<br>
-          Script must define: <code>model = YourNet()</code> or <code>def get_model(): ...</code>
-        </div>
+        <div class="code-hint mt-1">Required for state-dict .pth files.<br>Script must define: <code>model = YourNet()</code></div>
       </div>
       <div class="mt-2">
-        <label>Input Shape <span class="text-muted fw-normal">(B × C × H × W)</span></label>
+        <label>Input Shape <span style="font-weight:400;color:var(--s400)">(B × C × H × W)</span></label>
         <div class="row g-1">
-          <div class="col-3"><input type="number" class="form-control text-center" id="wl-b-${id}" value="1"   min="1" placeholder="B"></div>
+          <div class="col-3"><input type="number" class="form-control text-center" id="wl-b-${id}"  value="1"   min="1" placeholder="B"></div>
           <div class="col-3"><input type="number" class="form-control text-center" id="wl-ch-${id}" value="3"   min="1" placeholder="C"></div>
-          <div class="col-3"><input type="number" class="form-control text-center" id="wl-h-${id}" value="224" min="1" placeholder="H"></div>
+          <div class="col-3"><input type="number" class="form-control text-center" id="wl-h-${id}"  value="224" min="1" placeholder="H"></div>
           <div class="col-3"><input type="number" class="form-control text-center" id="wl-ww-${id}" value="224" min="1" placeholder="W"></div>
         </div>
         <div class="form-text">Batch · Channels · Height · Width</div>
       </div>
     </div>
 
-    <!-- Manual panel -->
     <div id="wl-mp-${id}" style="display:none">
       <div class="mb-2">
         <label>Total FLOPs</label>
         <input type="text" class="form-control" id="wl-ops-${id}" placeholder="e.g. 1.8e9">
-        <div class="form-text">Multiply-add = 2 ops (IEEE)</div>
+        <div class="form-text">1 multiply-add = 2 ops (IEEE)</div>
       </div>
       <div>
         <label>Memory Footprint (bytes)</label>
@@ -404,7 +713,7 @@ function addWl() {
   document.getElementById('wl-list').appendChild(div);
 }
 
-function rmWl(id)   { document.getElementById(`wl-${id}`)?.remove(); }
+function rmWl(id) { document.getElementById(`wl-${id}`)?.remove(); }
 
 function setMode(id, mode) {
   const fp = document.getElementById(`wl-fp-${id}`);
@@ -439,7 +748,7 @@ function togglePreset(n) {
   const tile = document.getElementById(`tile-${n}`);
   if (!tile) return;
   if (selPresets.has(n)) { selPresets.delete(n); tile.classList.remove('sel'); }
-  else                   { selPresets.add(n);    tile.classList.add('sel');    }
+  else                   { selPresets.add(n);    tile.classList.add('sel'); }
 }
 
 function addCustomArch() {
@@ -448,8 +757,8 @@ function addCustomArch() {
   div.className = 'wl-item mb-2'; div.id = `ca-${id}`;
   div.innerHTML = `
     <div class="d-flex align-items-center mb-2 gap-2">
-      <i class="bi bi-sliders2" style="color:var(--purp)"></i>
-      <span class="fw-semibold" style="font-size:.88rem">Custom Arch ${id+1}</span>
+      <i class="bi bi-sliders2" style="color:var(--purple)"></i>
+      <span style="font-size:.85rem;font-weight:600;color:var(--s700)">Custom Arch ${id + 1}</span>
       <button class="btn btn-sm btn-link text-danger ms-auto p-0" onclick="rmCA(${id})">
         <i class="bi bi-x-lg"></i>
       </button>
@@ -492,31 +801,31 @@ function collectConfig() {
     if (manual) {
       const ops = parseFloat(document.getElementById(`wl-ops-${id}`)?.value || '');
       const mem = parseFloat(document.getElementById(`wl-mem-${id}`)?.value || '');
-      if (isNaN(ops) || ops < 0) throw new Error(`Workload "${name||id}": enter valid FLOPs.`);
-      if (isNaN(mem) || mem < 0) throw new Error(`Workload "${name||id}": enter valid Memory.`);
-      return { name, task_type:task, manual:true, operations:ops, memory_bytes:mem };
+      if (isNaN(ops) || ops < 0) throw new Error(`Workload "${name || id}": enter valid FLOPs.`);
+      if (isNaN(mem) || mem < 0) throw new Error(`Workload "${name || id}": enter valid Memory.`);
+      return { name, task_type: task, manual: true, operations: ops, memory_bytes: mem };
     }
     const b  = parseInt(document.getElementById(`wl-b-${id}`)?.value)  || 1;
     const ch = parseInt(document.getElementById(`wl-ch-${id}`)?.value) || 3;
     const h  = parseInt(document.getElementById(`wl-h-${id}`)?.value)  || 224;
     const w  = parseInt(document.getElementById(`wl-ww-${id}`)?.value) || 224;
-    return { name, task_type:task, manual:false, input_shape:[b,ch,h,w] };
+    return { name, task_type: task, manual: false, input_shape: [b, ch, h, w] };
   });
 
   const architectures = [];
-  for (const p of selPresets) architectures.push({ preset:p });
+  for (const p of selPresets) architectures.push({ preset: p });
 
   const cas = [...document.querySelectorAll('[id^="ca-"]')]
     .filter(el => el.id.match(/^ca-\d+$/));
   for (const el of cas) {
     const id = el.id.replace('ca-', '');
     architectures.push({
-      name:             document.getElementById(`ca-name-${id}`)?.value?.trim() || `Custom_${+id+1}`,
+      name:             document.getElementById(`ca-name-${id}`)?.value?.trim() || `Custom_${+id + 1}`,
       parallel_units:   parseFloat(document.getElementById(`ca-u-${id}`)?.value)  || 512,
-      frequency:        parseFloat(document.getElementById(`ca-f-${id}`)?.value)  * 1e9 || 1e9,
-      energy_per_op:    parseFloat(document.getElementById(`ca-eo-${id}`)?.value) * 1e-12 || 1.5e-12,
-      energy_per_byte:  parseFloat(document.getElementById(`ca-eb-${id}`)?.value) * 1e-12 || 4e-12,
-      memory_bandwidth: parseFloat(document.getElementById(`ca-bw-${id}`)?.value) * 1e9  || 75e9,
+      frequency:        (parseFloat(document.getElementById(`ca-f-${id}`)?.value)  || 1) * 1e9,
+      energy_per_op:    (parseFloat(document.getElementById(`ca-eo-${id}`)?.value) || 1.5) * 1e-12,
+      energy_per_byte:  (parseFloat(document.getElementById(`ca-eb-${id}`)?.value) || 4) * 1e-12,
+      memory_bandwidth: (parseFloat(document.getElementById(`ca-bw-${id}`)?.value) || 75) * 1e9,
     });
   }
 
@@ -530,7 +839,7 @@ function collectConfig() {
 async function runEval() {
   hideErr();
   let config;
-  try { config = collectConfig(); } catch(e) { showErr(e.message); return; }
+  try { config = collectConfig(); } catch (e) { showErr(e.message); return; }
 
   const items = [...document.querySelectorAll('[id^="wl-"]')]
     .filter(el => el.id.match(/^wl-\d+$/));
@@ -540,11 +849,10 @@ async function runEval() {
   for (let i = 0; i < config.workloads.length; i++) {
     if (config.workloads[i].manual) continue;
     const id = items[i]?.id?.replace('wl-', '');
-    if (!id) { showErr(`Workload ${i+1}: index error.`); return; }
-
+    if (!id) { showErr(`Workload ${i + 1}: index error.`); return; }
     const wInput = document.getElementById(`wl-w-${id}`);
     const cInput = document.getElementById(`wl-c-${id}`);
-    if (!wInput?.files?.length) { showErr(`Workload #${i+1}: no weights file selected.`); return; }
+    if (!wInput?.files?.length) { showErr(`Workload #${i + 1}: no weights file selected.`); return; }
     fd.append(`model_file_${i}`, wInput.files[0]);
     if (cInput?.files?.length) fd.append(`code_file_${i}`, cInput.files[0]);
   }
@@ -553,15 +861,15 @@ async function runEval() {
   document.getElementById('run-btn').disabled = true;
 
   try {
-    const resp = await fetch('/api/evaluate', { method:'POST', body:fd });
+    const resp = await fetch('/api/evaluate', { method: 'POST', body: fd });
     const text = await resp.text();
     let data;
     try { data = JSON.parse(text); }
-    catch { showErr('Server returned invalid JSON. See browser console.'); console.error(text); return; }
+    catch { showErr('Server returned invalid JSON. Check browser console.'); console.error(text); return; }
     if (!resp.ok || data.error) { showErr(data?.error || `Server error ${resp.status}`); return; }
     lastData = data;
     renderResults(data);
-  } catch(e) {
+  } catch (e) {
     showErr('Network error: ' + e.message);
   } finally {
     document.getElementById('overlay').classList.remove('on');
@@ -576,69 +884,81 @@ function renderResults(data) {
   const { results, workloads, architectures } = data;
   if (!results?.length || !workloads?.length) { showErr('Empty results from server.'); return; }
 
-  // Show results, hide placeholder
   document.getElementById('placeholder').style.display = 'none';
-  document.getElementById('results').style.display     = 'block';   // ← must be 'block', not ''
+  const resEl = document.getElementById('results');
+  resEl.style.display = 'block';
+  resEl.classList.remove('vis');
+  void resEl.offsetWidth; // force reflow for animation restart
+  resEl.classList.add('vis');
 
-  const archNames  = [...new Set(results.map(r => r.architecture))];
-  const validLats  = results.map(r => r.latency_ms).filter(v => v != null && isFinite(v));
-  const bestLatR   = results.reduce((b,r) => (r.latency_ms != null && r.latency_ms < (b?.latency_ms ?? Infinity)) ? r : b, null);
-  const bestEngR   = results.reduce((b,r) => (r.energy_mj  != null && r.energy_mj  < (b?.energy_mj  ?? Infinity)) ? r : b, null);
+  const bestLatR = results.reduce((b, r) => (r.latency_ms != null && r.latency_ms < (b?.latency_ms ?? Infinity)) ? r : b, null);
+  const bestEngR = results.reduce((b, r) => (r.energy_mj  != null && r.energy_mj  < (b?.energy_mj  ?? Infinity)) ? r : b, null);
 
-  // Summary cards
+  // KPI cards
   document.getElementById('summary-cards').innerHTML = `
-    <div class="col-4"><div class="metric-card">
-      <div class="metric-val">${workloads.length}</div>
-      <div class="metric-lbl">Workload${workloads.length>1?'s':''}</div>
-    </div></div>
-    <div class="col-4"><div class="metric-card">
-      <div class="metric-val">${bestLatR ? bestLatR.latency_ms.toFixed(2) : '—'}</div>
-      <div class="metric-lbl">Best Latency ms</div>
-      ${bestLatR ? `<div style="font-size:.7rem;color:#64748b">${esc(bestLatR.architecture)}</div>` : ''}
-    </div></div>
-    <div class="col-4"><div class="metric-card">
-      <div class="metric-val">${bestEngR ? bestEngR.energy_mj.toFixed(3) : '—'}</div>
-      <div class="metric-lbl">Best Energy mJ</div>
-      ${bestEngR ? `<div style="font-size:.7rem;color:#64748b">${esc(bestEngR.architecture)}</div>` : ''}
-    </div></div>
+    <div class="kpi-card">
+      <div class="kpi-ico bl"><i class="bi bi-diagram-3"></i></div>
+      <div>
+        <div class="kpi-val">${workloads.length}</div>
+        <div class="kpi-lbl">Workload${workloads.length > 1 ? 's' : ''}</div>
+      </div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-ico pu"><i class="bi bi-motherboard"></i></div>
+      <div>
+        <div class="kpi-val">${architectures.length}</div>
+        <div class="kpi-lbl">Architecture${architectures.length > 1 ? 's' : ''}</div>
+      </div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-ico gr"><i class="bi bi-clock-history"></i></div>
+      <div>
+        <div class="kpi-val">${bestLatR ? bestLatR.latency_ms.toFixed(2) : '—'}<span style="font-size:.7rem;font-weight:400;color:var(--s400);margin-left:.2rem">ms</span></div>
+        <div class="kpi-lbl">Best Latency</div>
+        ${bestLatR ? `<div class="kpi-sub">${esc(bestLatR.architecture)} · ${esc(bestLatR.workload)}</div>` : ''}
+      </div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-ico or"><i class="bi bi-lightning-charge"></i></div>
+      <div>
+        <div class="kpi-val">${bestEngR ? bestEngR.energy_mj.toFixed(3) : '—'}<span style="font-size:.7rem;font-weight:400;color:var(--s400);margin-left:.2rem">mJ</span></div>
+        <div class="kpi-lbl">Best Energy</div>
+        ${bestEngR ? `<div class="kpi-sub">${esc(bestEngR.architecture)} · ${esc(bestEngR.workload)}</div>` : ''}
+      </div>
+    </div>
   `;
 
-  // Results table (grouped by workload)
   buildResultsTable(results, workloads);
 
-  // Workload details
   document.getElementById('wl-detail-tbody').innerHTML = workloads.map(w => {
     const ai = w.arithmetic_intensity;
     const warn = w.is_zero
-      ? `<div class="text-warning mt-1" style="font-size:.72rem"><i class="bi bi-exclamation-triangle me-1"></i>Zero ops — check input shape or add code file</div>`
+      ? `<div style="color:#d97706;font-size:.7rem;margin-top:.2rem"><i class="bi bi-exclamation-triangle me-1"></i>Zero ops — check input shape or add code file</div>`
       : '';
     return `<tr>
       <td><strong>${esc(w.name)}</strong>${warn}</td>
       <td><span class="tb tb-${w.task_type}">${w.task_type}</span></td>
       <td>${fmtOps(w.operations)}</td>
-      <td>${w.memory_mb != null ? w.memory_mb.toFixed(1)+' MB' : '—'}</td>
-      <td>${ai != null ? ai.toFixed(1)+' ops/B' : '<span class="text-muted">N/A</span>'}</td>
+      <td>${w.memory_mb != null ? w.memory_mb.toFixed(1) + ' MB' : '—'}</td>
+      <td>${ai != null ? ai.toFixed(1) + ' ops/B' : '<span style="color:var(--s400)">N/A</span>'}</td>
     </tr>`;
   }).join('');
 
-  // Chart
   buildChart(results, workloads, architectures, activeChart);
 }
 
-/* ────────────────────────────────────────────────────────────
-   Grouped results table with mini bars + best-value highlight
-   ──────────────────────────────────────────────────────────── */
+/* ============================================================
+   Results table
+   ============================================================ */
 function buildResultsTable(results, workloads) {
   let html = '';
-
   for (let wi = 0; wi < workloads.length; wi++) {
-    const wl = workloads[wi];
+    const wl   = workloads[wi];
     const rows = results.filter(r => r.workload === wl.name);
     if (!rows.length) continue;
 
-    // Per-workload extremes for bar scaling
-    const lats = rows.map(r => r.latency_ms).filter(v => v != null && isFinite(v) && v > 0);
-    const engs = rows.map(r => r.energy_mj ).filter(v => v != null && isFinite(v) && v > 0);
+    const lats   = rows.map(r => r.latency_ms).filter(v => v != null && isFinite(v) && v > 0);
+    const engs   = rows.map(r => r.energy_mj ).filter(v => v != null && isFinite(v) && v > 0);
     const maxLat = lats.length ? Math.max(...lats) : 1;
     const minLat = lats.length ? Math.min(...lats) : 0;
     const maxEng = engs.length ? Math.max(...engs) : 1;
@@ -653,13 +973,11 @@ function buildResultsTable(results, workloads) {
       const thrPct  = maxThr > 0 && r.throughput_ops != null ? (r.throughput_ops / maxThr * 100) : 0;
 
       html += `<tr>`;
-
-      // Workload cell spans all architecture rows for this workload
       if (ri === 0) {
         html += `<td rowspan="${rows.length}" class="wl-cell">
-          <div class="fw-bold mb-1">${esc(wl.name)}</div>
+          <div style="font-weight:700;margin-bottom:.25rem">${esc(wl.name)}</div>
           <span class="tb tb-${wl.task_type}">${wl.task_type}</span>
-          <div class="text-muted mt-1" style="font-size:.7rem">${fmtOps(wl.operations)}</div>
+          <div style="font-size:.7rem;color:var(--s400);margin-top:.25rem">${fmtOps(wl.operations)}</div>
         </td>`;
       }
 
@@ -670,26 +988,20 @@ function buildResultsTable(results, workloads) {
       html += `
         <td><span class="ap ${apClass}">${esc(r.architecture)}</span></td>
         <td class="${latBest ? 'cell-best' : ''}">
-          ${miniBar(latPct, r.latency_ms?.toFixed(2) ?? '—', 'ms', latBest,
-                    latBest ? '#16a34a' : '#94a3b8')}
+          ${miniBar(latPct, r.latency_ms?.toFixed(2) ?? '—', 'ms', latBest, latBest ? '#16a34a' : '#94a3b8')}
         </td>
         <td class="${engBest ? 'cell-best' : ''}">
-          ${miniBar(engPct, r.energy_mj?.toFixed(3) ?? '—', 'mJ', engBest,
-                    engBest ? '#16a34a' : '#94a3b8')}
+          ${miniBar(engPct, r.energy_mj?.toFixed(3) ?? '—', 'mJ', engBest, engBest ? '#16a34a' : '#94a3b8')}
         </td>
-        <td>
-          ${miniBar(thrPct, r.throughput_ops != null ? (r.throughput_ops/1e9).toFixed(1) : '—', 'G', false, '#2563eb')}
-        </td>
+        <td>${miniBar(thrPct, r.throughput_ops != null ? (r.throughput_ops / 1e9).toFixed(1) : '—', 'G', false, '#2563eb')}</td>
         <td>${bbadge(r.bottleneck)}</td>
       </tr>`;
     });
 
-    // Separator between workload groups
     if (wi < workloads.length - 1) {
       html += `<tr class="wl-sep"><td colspan="6"></td></tr>`;
     }
   }
-
   document.getElementById('res-tbody').innerHTML = html;
 }
 
@@ -703,8 +1015,8 @@ function miniBar(pct, val, unit, isBest, color) {
 }
 
 function bbadge(b) {
-  if (b === 'compute') return '<span class="bb bb-compute"><i class="bi bi-cpu me-1"></i>compute</span>';
-  if (b === 'memory')  return '<span class="bb bb-memory"><i class="bi bi-database me-1"></i>memory</span>';
+  if (b === 'compute') return '<span class="bb bb-compute"><i class="bi bi-cpu"></i>compute</span>';
+  if (b === 'memory')  return '<span class="bb bb-memory"><i class="bi bi-database"></i>memory</span>';
   return '<span class="bb bb-unknown">unknown</span>';
 }
 
@@ -730,7 +1042,7 @@ function buildChart(results, workloads, architectures, type) {
     }),
     backgroundColor: archColor(aname, i) + 'cc',
     borderColor:     archColor(aname, i),
-    borderWidth: 1.5, borderRadius: 4,
+    borderWidth: 1.5, borderRadius: 5,
   }));
 
   const yLabel = type === 'latency' ? 'Latency (ms)' : type === 'energy' ? 'Energy (mJ)' : 'Throughput (GOPS)';
@@ -744,12 +1056,21 @@ function buildChart(results, workloads, architectures, type) {
     options: {
       responsive: true, maintainAspectRatio: false,
       plugins: {
-        legend: { position: 'top', labels: { font: { size: 12 } } },
+        legend: { position: 'top', labels: { font: { size: 12 }, padding: 16 } },
         tooltip: { callbacks: { label: c => ` ${c.dataset.label}: ${c.parsed.y?.toFixed(4) ?? 'N/A'}` } }
       },
       scales: {
-        y: { beginAtZero: true, title: { display: true, text: yLabel, font: { weight: 'bold' } } },
-        x: { title: { display: wlNames.length > 1, text: 'Workload' } }
+        y: {
+          beginAtZero: true,
+          grid: { color: '#f1f5f9' },
+          title: { display: true, text: yLabel, font: { weight: '600', size: 11 }, color: '#64748b' },
+          ticks: { font: { size: 11 }, color: '#94a3b8' }
+        },
+        x: {
+          grid: { display: false },
+          title: { display: wlNames.length > 1, text: 'Workload', font: { size: 11 }, color: '#64748b' },
+          ticks: { font: { size: 11 }, color: '#64748b' }
+        }
       }
     }
   });
@@ -757,14 +1078,14 @@ function buildChart(results, workloads, architectures, type) {
 
 function switchChart(type) {
   activeChart = type;
-  ['latency','energy','throughput'].forEach(t =>
+  ['latency', 'energy', 'throughput'].forEach(t =>
     document.getElementById(`tab-${t}`)?.classList.toggle('active', t === type)
   );
   if (lastData) buildChart(lastData.results, lastData.workloads, lastData.architectures, type);
 }
 
 /* ============================================================
-   CSV
+   CSV export
    ============================================================ */
 function dlCSV() {
   if (!lastData) return;
@@ -773,9 +1094,9 @@ function dlCSV() {
   for (const r of lastData.results) {
     rows.push([
       r.workload, r.task_type, r.architecture,
-      r.latency_ms   != null ? r.latency_ms.toFixed(6)          : '',
-      r.throughput_ops!=null ? (r.throughput_ops/1e9).toFixed(4) : '',
-      r.energy_mj    != null ? r.energy_mj.toFixed(6)            : '',
+      r.latency_ms    != null ? r.latency_ms.toFixed(6)           : '',
+      r.throughput_ops!= null ? (r.throughput_ops/1e9).toFixed(4) : '',
+      r.energy_mj     != null ? r.energy_mj.toFixed(6)            : '',
       r.bottleneck,
       r.ops != null ? r.ops.toExponential(4) : '',
       r.memory_mb != null ? r.memory_mb.toFixed(2) : '',
@@ -795,10 +1116,10 @@ function dlCSV() {
 function fmtOps(n) {
   if (n == null || isNaN(n)) return '—';
   if (n === 0) return '0 (failed)';
-  if (n >= 1e12) return (n/1e12).toFixed(2)+' TFLOPs';
-  if (n >= 1e9)  return (n/1e9).toFixed(2)+' GFLOPs';
-  if (n >= 1e6)  return (n/1e6).toFixed(2)+' MFLOPs';
-  return n.toExponential(2)+' ops';
+  if (n >= 1e12) return (n/1e12).toFixed(2) + ' TFLOPs';
+  if (n >= 1e9)  return (n/1e9).toFixed(2)  + ' GFLOPs';
+  if (n >= 1e6)  return (n/1e6).toFixed(2)  + ' MFLOPs';
+  return n.toExponential(2) + ' ops';
 }
 function esc(s) {
   return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -806,7 +1127,7 @@ function esc(s) {
 function showErr(msg) {
   document.getElementById('err-msg').textContent = msg || 'Unknown error.';
   document.getElementById('err-alert').classList.remove('d-none');
-  window.scrollTo({ top:0, behavior:'smooth' });
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 function hideErr() { document.getElementById('err-alert').classList.add('d-none'); }
 
