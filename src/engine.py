@@ -58,20 +58,20 @@ PRESET_ARCHITECTURES = {
         "energy_per_byte": 5.0e-12,  # unchanged (memory bus voltage not scaled)
         "memory_bandwidth": 50e9,
     },
-    # RTX 5060 (Blackwell GB206, desktop, released 2025).
-    # Source: NVIDIA official + TechPowerUp specs.
-    # CUDA cores: 3840 (30 SMs × 128). Each core executes FMA → 2 FP32 ops/cycle.
-    # parallel_units = 3840 × 2 = 7680 so that peak_compute = parallel_units × freq
-    # yields the correct FP32 TFLOPS figure (19.75 TFLOPS).
-    # energy_per_op = TDP / peak_compute = 145 W / 19.75e12 ops/s ≈ 7.3 pJ/op.
-    # energy_per_byte: GDDR7 interface, ~20 pJ/byte (literature estimate for GDDR7).
-    "RTX5060": {
-        "name": "RTX 5060",
-        "parallel_units": 7680,       # 3840 CUDA cores × 2 FP32 ops/cycle (FMA)
-        "frequency": 2.572e9,         # 2572 MHz boost clock
-        "energy_per_op": 7.3e-12,     # 7.3 pJ/op  — 145 W TDP / 19.75 TOPS
-        "energy_per_byte": 20.0e-12,  # 20 pJ/byte — GDDR7 interface estimate
-        "memory_bandwidth": 448e9,    # 448 GB/s  — GDDR7 28 Gbps 128-bit bus
+    # GTX 1060 6 GB (Pascal GP106, desktop, released 2016).
+    # Source: NVIDIA official + TechPowerUp GPU Database.
+    # CUDA cores: 1280 (10 SMs × 128). Each core executes FMA → 2 FP32 ops/cycle.
+    # parallel_units = 1280 × 2 = 2560 so that peak_compute = parallel_units × freq
+    # yields the correct FP32 TFLOPS figure (4.375 TFLOPS).
+    # energy_per_op = TDP / peak_compute = 120 W / 4.375e12 ops/s ≈ 27.4 pJ/op.
+    # energy_per_byte: GDDR5 interface, ~35 pJ/byte (literature estimate for GDDR5).
+    "GTX1060": {
+        "name": "GTX 1060",
+        "parallel_units": 2560,       # 1280 CUDA cores × 2 FP32 ops/cycle (FMA)
+        "frequency": 1.708e9,         # 1708 MHz boost clock
+        "energy_per_op": 27.4e-12,    # 27.4 pJ/op — 120 W TDP / 4.375 TOPS
+        "energy_per_byte": 35.0e-12,  # 35 pJ/byte — GDDR5 interface estimate
+        "memory_bandwidth": 192e9,    # 192 GB/s  — GDDR5 8 Gbps 192-bit bus
     },
 }
 

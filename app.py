@@ -40,6 +40,11 @@ def index():
     return render_template("index.html")
 
 
+@app.route("/textbook")
+def textbook():
+    return render_template("textbook.html")
+
+
 @app.route("/api/presets")
 def get_presets():
     return jsonify({

@@ -350,7 +350,8 @@
     .ap-VPU    { background:#dbeafe; color:#1e40af; }
     .ap-NPU    { background:#dcfce7; color:#166534; }
     .ap-DVFS   { background:#ffedd5; color:#9a3412; }
-    .ap-custom { background:#f3e8ff; color:#6b21a8; }
+    .ap-GTX1060{ background:#f3e8ff; color:#6b21a8; }
+    .ap-custom { background:#fce7f3; color:#9d174d; }
 
     .bb { font-size:.72rem; padding:.2rem .5rem; border-radius:20px; font-weight:600;
           display:inline-flex; align-items:center; gap:.25rem; }
@@ -444,7 +445,16 @@
     </a>
     <div class="hd-div"></div>
     <span class="hd-meta">AI Accelerator Architecture Analysis &nbsp;·&nbsp; Harokopio University of Athens</span>
-    <span class="eu-badge">★ EU &nbsp;RIGOLETTO</span>
+    <button data-bs-toggle="modal" data-bs-target="#textbookModal"
+       style="margin-left:auto;flex-shrink:0;display:flex;align-items:center;gap:.38rem;
+       color:rgba(255,255,255,.7);font-size:.78rem;font-weight:600;cursor:pointer;
+       background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);
+       border-radius:7px;padding:.28rem .75rem;transition:all .15s;"
+       onmouseover="this.style.color='#fff';this.style.background='rgba(255,255,255,.15)'"
+       onmouseout="this.style.color='rgba(255,255,255,.7)';this.style.background='rgba(255,255,255,.08)'">
+      <i class="bi bi-journal-text"></i> Textbook
+    </button>
+    <span class="eu-badge" style="margin-left:0">★ EU &nbsp;RIGOLETTO</span>
   </header>
 
   <!-- ═══ Body ═════════════════════════════════════════════ -->
@@ -485,11 +495,11 @@
               <div class="pt-name">VPU+DVFS</div>
               <div class="pt-meta">256 u · 700 MHz<br>50 GB/s · 0.98 pJ</div>
             </div>
-            <div class="preset-tile gpu sel" id="tile-RTX5060" onclick="togglePreset('RTX5060')">
+            <div class="preset-tile gpu sel" id="tile-GTX1060" onclick="togglePreset('GTX1060')">
               <div class="pt-check"><i class="bi bi-check"></i></div>
               <div class="pt-icon" style="color:var(--purple)"><i class="bi bi-gpu-card"></i></div>
-              <div class="pt-name">RTX 5060</div>
-              <div class="pt-meta">7680 u · 2.57 GHz<br>448 GB/s · 7.3 pJ</div>
+              <div class="pt-name">GTX 1060</div>
+              <div class="pt-meta">2560 u · 1.71 GHz<br>192 GB/s · 27.4 pJ</div>
             </div>
           </div>
           <div id="custom-arch-list"></div>
@@ -632,11 +642,11 @@
    State
    ============================================================ */
 let wlIdx = 0, caIdx = 0;
-const selPresets = new Set(['VPU', 'NPU', 'VPU_DVFS', 'RTX5060']);
+const selPresets = new Set(['VPU', 'NPU', 'VPU_DVFS', 'GTX1060']);
 let chart = null, lastData = null, activeChart = 'latency';
 
-const ARCH_COLORS = { 'VPU':'#2563eb', 'NPU':'#16a34a', 'VPU+DVFS':'#ea580c' };
-const FB_COLORS   = ['#7c3aed','#db2777','#0891b2','#65a30d','#b45309'];
+const ARCH_COLORS = { 'VPU':'#2563eb', 'NPU':'#16a34a', 'VPU+DVFS':'#ea580c', 'GTX 1060':'#7c3aed' };
+const FB_COLORS   = ['#db2777','#0891b2','#65a30d','#b45309','#059669','#d97706'];
 const archColor   = (n, i) => ARCH_COLORS[n] || FB_COLORS[i % FB_COLORS.length];
 
 /* ============================================================
@@ -989,9 +999,10 @@ function buildResultsTable(results, workloads) {
         </td>`;
       }
 
-      const apClass = r.architecture === 'VPU' ? 'ap-VPU'
-                    : r.architecture === 'NPU' ? 'ap-NPU'
-                    : r.architecture === 'VPU+DVFS' ? 'ap-DVFS' : 'ap-custom';
+      const apClass = r.architecture === 'VPU'      ? 'ap-VPU'
+                    : r.architecture === 'NPU'      ? 'ap-NPU'
+                    : r.architecture === 'VPU+DVFS' ? 'ap-DVFS'
+                    : r.architecture === 'GTX 1060' ? 'ap-GTX1060' : 'ap-custom';
 
       // Effective throughput label: ops/latency (workload-dependent, NOT peak_compute)
       const thrVal = r.throughput_ops != null ? (r.throughput_ops / 1e9).toFixed(2) : '—';
@@ -1165,5 +1176,326 @@ function hideErr() { document.getElementById('err-alert').classList.add('d-none'
    ============================================================ */
 document.addEventListener('DOMContentLoaded', () => addWl());
 </script>
+
+<!-- ═══ Textbook Modal ══════════════════════════════════════ -->
+<div class="modal fade" id="textbookModal" tabindex="-1" aria-labelledby="textbookModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable" style="max-width:780px">
+    <div class="modal-content" style="border-radius:12px;border:none;box-shadow:0 8px 40px rgba(0,0,0,.22)">
+
+      <!-- header -->
+      <div class="modal-header" style="background:var(--navy);border-radius:12px 12px 0 0;padding:.85rem 1.25rem;border:none">
+        <div style="display:flex;align-items:center;gap:.55rem">
+          <div style="width:28px;height:28px;background:var(--blue);border-radius:7px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:.9rem">
+            <i class="bi bi-journal-text"></i>
+          </div>
+          <span style="font-weight:700;color:#fff;font-size:1rem">VeloArch <span style="font-weight:400;font-size:.7rem;color:rgba(255,255,255,.45);margin-left:.1rem">Textbook</span></span>
+        </div>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" style="opacity:.6"></button>
+      </div>
+
+      <!-- scrollable body -->
+      <div class="modal-body" style="padding:1.5rem 1.6rem;background:var(--s50)">
+
+        <div style="background:var(--navy);color:rgba(255,255,255,.85);border-radius:10px;padding:1.1rem 1.3rem;margin-bottom:1.8rem;font-size:.84rem;line-height:1.7">
+          <strong style="color:#fff">What is VeloArch?</strong><br>
+          VeloArch estimates how fast and how efficiently an AI model runs on a target chip — using math, not real hardware.
+          Every number shown comes from a formula. This page explains every term in plain language.
+        </div>
+
+        <!-- ── helpers ─────────────────────────────────────── -->
+        <style>
+          .tb-sec-title { font-size:.65rem;font-weight:700;letter-spacing:1.1px;text-transform:uppercase;
+            color:var(--s500);border-bottom:1px solid var(--s200);padding-bottom:.45rem;margin:1.6rem 0 .9rem; }
+          .tb-card { background:#fff;border:1px solid var(--s200);border-radius:9px;
+            padding:.95rem 1.1rem;margin-bottom:.65rem;box-shadow:0 1px 4px rgba(0,0,0,.06); }
+          .tb-card-hd { display:flex;align-items:flex-start;gap:.65rem;margin-bottom:.45rem; }
+          .tb-ic { width:32px;height:32px;border-radius:7px;display:flex;align-items:center;
+            justify-content:center;font-size:.95rem;flex-shrink:0; }
+          .tb-name { font-size:.9rem;font-weight:700;color:var(--s900);line-height:1.2; }
+          .tb-unit { font-size:.7rem;color:var(--s500);margin-top:.12rem; }
+          .tb-body { font-size:.82rem;color:var(--s700);line-height:1.65; }
+          .tb-formula { margin-top:.55rem;background:var(--s50);border:1px solid var(--s200);border-radius:6px;
+            padding:.45rem .75rem;font-family:monospace;font-size:.76rem;color:var(--navy);line-height:1.6; }
+          .tb-formula .fl { color:var(--blue);font-weight:600; }
+          .tb-tip { margin-top:.5rem;display:flex;gap:.4rem;align-items:flex-start;
+            font-size:.75rem;color:var(--s600);font-style:italic; }
+          .tb-tip i { color:var(--orange);flex-shrink:0;margin-top:.1rem; }
+          .ic-bl { background:var(--blue-lt);color:var(--blue); }
+          .ic-gr { background:var(--green-lt);color:var(--green); }
+          .ic-or { background:var(--orange-lt);color:var(--orange); }
+          .ic-pu { background:var(--purple-lt);color:var(--purple); }
+          .ic-sl { background:var(--s100);color:var(--s600); }
+        </style>
+
+        <!-- ══ Section 1: Model ══════════════════════════════ -->
+        <div class="tb-sec-title"><i class="bi bi-diagram-3-fill" style="margin-right:.35rem"></i>Your AI Model — What We Measure</div>
+
+        <div class="tb-card">
+          <div class="tb-card-hd">
+            <div class="tb-ic ic-bl"><i class="bi bi-plus-slash-minus"></i></div>
+            <div><div class="tb-name">FLOPs — Floating-Point Operations</div><div class="tb-unit">ops &nbsp;or&nbsp; GFLOPs (billions)</div></div>
+          </div>
+          <div class="tb-body">Every multiply or add on a decimal number is one FLOP. A convolution layer does millions of them — we count the total across the whole network to know how much <em>arithmetic work</em> the model requires.</div>
+          <div class="tb-formula">
+            <span class="fl">Conv2d:</span>  ops = 2 × B × H_out × W_out × C_in × C_out × Kh × Kw<br>
+            <span class="fl">Linear:</span>  ops = 2 × B × in_features × out_features<br>
+            The <span class="fl">×2</span> counts both the multiply AND the add in each MAC (IEEE standard).
+          </div>
+          <div class="tb-tip"><i class="bi bi-lightbulb-fill"></i>ResNet-18 on 224×224 ≈ 3.6 GFLOPs. A GPT-2 medium forward pass ≈ 500 GFLOPs.</div>
+        </div>
+
+        <div class="tb-card">
+          <div class="tb-card-hd">
+            <div class="tb-ic ic-bl"><i class="bi bi-calculator"></i></div>
+            <div><div class="tb-name">MACs — Multiply-Accumulate Operations</div><div class="tb-unit">1 MAC = 2 FLOPs</div></div>
+          </div>
+          <div class="tb-body">A MAC is one multiply plus one add — the basic operation of neural network math. Many papers quote model size in GMACs; just multiply by 2 to get GFLOPs.</div>
+          <div class="tb-formula">1 MAC = 1 multiply + 1 add = <span class="fl">2 FLOPs</span></div>
+        </div>
+
+        <div class="tb-card">
+          <div class="tb-card-hd">
+            <div class="tb-ic ic-bl"><i class="bi bi-database"></i></div>
+            <div><div class="tb-name">Memory Traffic</div><div class="tb-unit">MB (megabytes moved per inference)</div></div>
+          </div>
+          <div class="tb-body">The processor must load data from RAM before it can work on it. Memory traffic counts the bytes moved: layer <strong>weights</strong> (learned parameters) and <strong>output activations</strong> (numbers each layer produces). Heavy memory traffic is the primary cause of the memory bottleneck.</div>
+          <div class="tb-formula">mem per layer = (weight parameters + output elements) × 4 bytes  <span style="color:var(--s400)">(float32)</span></div>
+        </div>
+
+        <div class="tb-card">
+          <div class="tb-card-hd">
+            <div class="tb-ic ic-bl"><i class="bi bi-grid"></i></div>
+            <div><div class="tb-name">Input Shape — B × C × H × W</div><div class="tb-unit">Batch × Channels × Height × Width</div></div>
+          </div>
+          <div class="tb-body"><strong>B</strong> = batch size (images processed at once; use 1 for single-image latency). <strong>C</strong> = colour channels (3 for RGB). <strong>H × W</strong> = resolution. Larger images → more FLOPs and more memory → higher latency.</div>
+          <div class="tb-tip"><i class="bi bi-lightbulb-fill"></i>Classification: 224×224. Object detection (YOLO): 320×320 or 640×640.</div>
+        </div>
+
+        <div class="tb-card">
+          <div class="tb-card-hd">
+            <div class="tb-ic ic-gr"><i class="bi bi-graph-up"></i></div>
+            <div><div class="tb-name">Arithmetic Intensity (AI)</div><div class="tb-unit">ops/byte — the most important model characteristic</div></div>
+          </div>
+          <div class="tb-body">How much arithmetic the model does per byte it moves. High AI = compute-heavy relative to memory. Low AI = memory-hungry relative to compute. This single number determines which hardware resource will be the bottleneck.</div>
+          <div class="tb-formula"><span class="fl">AI = ops / memory_bytes</span></div>
+          <div class="tb-tip"><i class="bi bi-lightbulb-fill"></i>ResNet-18 AI ≈ 64 ops/byte — quite compute-dense. A shallow embedding lookup might be 1–4 ops/byte.</div>
+        </div>
+
+        <!-- ══ Section 2: Hardware Inputs ════════════════════ -->
+        <div class="tb-sec-title"><i class="bi bi-motherboard-fill" style="margin-right:.35rem"></i>Hardware Parameters — What You Configure</div>
+
+        <div class="tb-card">
+          <div class="tb-card-hd">
+            <div class="tb-ic ic-or"><i class="bi bi-grid-3x3-gap-fill"></i></div>
+            <div><div class="tb-name">Parallel Units</div><div class="tb-unit">count — processing elements active each clock cycle</div></div>
+          </div>
+          <div class="tb-body">The number of arithmetic units working <em>simultaneously</em> each clock tick — the width of the compute pipeline. More units = more work per second. For embedded VPUs this is the MAC array width. For GPUs, set it to CUDA cores × 2 (each core does 2 ops/cycle via FMA).</div>
+          <div class="tb-formula">
+            VPU: 256 units × 1 GHz = <span class="fl">256 GOPS</span><br>
+            GTX 1060: 1280 cores × 2 (FMA) × 1.708 GHz = <span class="fl">4.375 TFLOPS</span>
+          </div>
+        </div>
+
+        <div class="tb-card">
+          <div class="tb-card-hd">
+            <div class="tb-ic ic-or"><i class="bi bi-speedometer2"></i></div>
+            <div><div class="tb-name">Frequency (Clock Speed)</div><div class="tb-unit">Hz &nbsp;(GHz = billions of cycles/s)</div></div>
+          </div>
+          <div class="tb-body">How many clock cycles the chip completes each second. Each cycle, all parallel units finish one operation. Doubling frequency doubles compute speed — but also raises power consumption.</div>
+        </div>
+
+        <div class="tb-card">
+          <div class="tb-card-hd">
+            <div class="tb-ic ic-or"><i class="bi bi-arrow-left-right"></i></div>
+            <div><div class="tb-name">Memory Bandwidth</div><div class="tb-unit">GB/s — the pipe width between memory and processor</div></div>
+          </div>
+          <div class="tb-body">The maximum rate at which data can flow from DRAM to the chip. If the chip is ready to compute but waiting for data, it stalls — bandwidth is the bottleneck.</div>
+          <div class="tb-tip"><i class="bi bi-lightbulb-fill"></i>LPDDR4 (phones) ≈ 50 GB/s · GDDR5 (GTX 1060) = 192 GB/s · GDDR7 (modern GPU) = 448 GB/s.</div>
+        </div>
+
+        <div class="tb-card">
+          <div class="tb-card-hd">
+            <div class="tb-ic ic-pu"><i class="bi bi-lightning-charge-fill"></i></div>
+            <div><div class="tb-name">Energy per Operation (E/op)</div><div class="tb-unit">pJ/op — picojoules per floating-point operation</div></div>
+          </div>
+          <div class="tb-body">How much electrical energy one arithmetic operation costs. Depends on the chip's process node (smaller = cheaper), voltage, and design. Derived from TDP ÷ peak throughput.</div>
+          <div class="tb-formula">
+            E/op = TDP [W] / peak_compute [ops/s]<br>
+            GTX 1060: 120 W / 4.375×10¹² = <span class="fl">27.4 pJ/op</span><br>
+            NPU (systolic array): <span class="fl">1 pJ/op</span> — far more efficient
+          </div>
+        </div>
+
+        <div class="tb-card">
+          <div class="tb-card-hd">
+            <div class="tb-ic ic-pu"><i class="bi bi-hdd-fill"></i></div>
+            <div><div class="tb-name">Energy per Byte (E/byte)</div><div class="tb-unit">pJ/byte — picojoules per byte transferred from memory</div></div>
+          </div>
+          <div class="tb-body">How much energy moving one byte of data costs. Memory accesses are surprisingly expensive — often the dominant energy cost in memory-bound workloads.</div>
+          <div class="tb-formula">
+            LPDDR4 (VPU): <span class="fl">5 pJ/byte</span> · LPDDR5 (NPU): <span class="fl">3 pJ/byte</span><br>
+            GDDR5 (GTX 1060): <span class="fl">35 pJ/byte</span> · GDDR7: <span class="fl">20 pJ/byte</span>
+          </div>
+        </div>
+
+        <!-- ══ Section 3: Derived Hardware ═══════════════════ -->
+        <div class="tb-sec-title"><i class="bi bi-cpu-fill" style="margin-right:.35rem"></i>Derived Hardware Properties — Calculated Automatically</div>
+
+        <div class="tb-card">
+          <div class="tb-card-hd">
+            <div class="tb-ic ic-bl"><i class="bi bi-graph-up-arrow"></i></div>
+            <div><div class="tb-name">Peak Compute</div><div class="tb-unit">GOPS or TFLOPS — the ceiling on arithmetic speed</div></div>
+          </div>
+          <div class="tb-body">The absolute maximum operations per second the hardware can execute, assuming every unit is busy every cycle. No workload can exceed this number.</div>
+          <div class="tb-formula"><span class="fl">peak_compute = parallel_units × frequency</span></div>
+        </div>
+
+        <div class="tb-card">
+          <div class="tb-card-hd">
+            <div class="tb-ic ic-gr"><i class="bi bi-sign-turn-right-fill"></i></div>
+            <div><div class="tb-name">Ridge Point</div><div class="tb-unit">ops/byte — the roofline knee, where bottleneck switches</div></div>
+          </div>
+          <div class="tb-body">The arithmetic intensity value at which performance transitions from memory-limited to compute-limited. Workloads with AI above the ridge point are compute-bound; below it they are memory-bound.</div>
+          <div class="tb-formula">
+            <span class="fl">ridge_point = peak_compute / memory_bandwidth</span><br>
+            VPU: 256 GOPS / 50 GB/s = <span class="fl">5.1 ops/byte</span><br>
+            GTX 1060: 4.37 TOPS / 192 GB/s = <span class="fl">22.8 ops/byte</span>
+          </div>
+        </div>
+
+        <!-- ══ Section 4: Outputs ═════════════════════════════ -->
+        <div class="tb-sec-title"><i class="bi bi-bar-chart-fill" style="margin-right:.35rem"></i>Output Metrics — What VeloArch Reports</div>
+
+        <div class="tb-card">
+          <div class="tb-card-hd">
+            <div class="tb-ic ic-bl"><i class="bi bi-hourglass-split"></i></div>
+            <div><div class="tb-name">Latency</div><div class="tb-unit">ms per inference — how long one forward pass takes</div></div>
+          </div>
+          <div class="tb-body">Whichever resource (compute or memory) takes longer determines the total time. Latency is the maximum of the two — the bottleneck sets the pace.</div>
+          <div class="tb-formula">
+            compute_time = ops / peak_compute<br>
+            memory_time  = memory_bytes / bandwidth<br>
+            <span class="fl">latency = max(compute_time, memory_time)</span>
+          </div>
+          <div class="tb-tip"><i class="bi bi-lightbulb-fill"></i>This is a theoretical lower bound. Real GPU latency for batch=1 is typically 5–10× higher due to kernel launch overhead and low occupancy. Embedded accelerators are closer to this estimate.</div>
+        </div>
+
+        <div class="tb-card">
+          <div class="tb-card-hd">
+            <div class="tb-ic ic-or"><i class="bi bi-lightning-fill"></i></div>
+            <div><div class="tb-name">Energy</div><div class="tb-unit">mJ per inference — total electrical energy consumed</div></div>
+          </div>
+          <div class="tb-body">Two independent cost centres: arithmetic energy and memory-transfer energy. In memory-bound workloads the memory term dominates; in compute-bound workloads the arithmetic term dominates.</div>
+          <div class="tb-formula"><span class="fl">energy = ops × E/op &nbsp;+&nbsp; memory_bytes × E/byte</span></div>
+          <div class="tb-tip"><i class="bi bi-lightbulb-fill"></i>Embedded AI targets &lt;1 mJ per inference. GTX 1060 uses ~100 mJ for ResNet-18 — optimised for performance, not efficiency.</div>
+        </div>
+
+        <div class="tb-card">
+          <div class="tb-card-hd">
+            <div class="tb-ic ic-bl"><i class="bi bi-speedometer"></i></div>
+            <div><div class="tb-name">Effective Throughput</div><div class="tb-unit">GOPS — actual operations per second achieved by this workload</div></div>
+          </div>
+          <div class="tb-body">Unlike peak compute (a fixed hardware ceiling), effective throughput depends on both the model and the hardware. Compute-bound workloads approach peak compute; memory-bound workloads fall short because compute units idle while waiting for data.</div>
+          <div class="tb-formula">
+            <span class="fl">eff_throughput = ops / latency</span><br>
+            Memory-bound → eff_throughput = AI × bandwidth &lt; peak_compute
+          </div>
+        </div>
+
+        <div class="tb-card">
+          <div class="tb-card-hd">
+            <div class="tb-ic ic-gr"><i class="bi bi-signpost-split-fill"></i></div>
+            <div><div class="tb-name">Bottleneck</div><div class="tb-unit">compute &nbsp;or&nbsp; memory</div></div>
+          </div>
+          <div class="tb-body">
+            <strong>Compute-bound:</strong> the arithmetic units are the constraint — the memory bus delivers data fast enough but the chip can't crunch faster.<br>
+            <strong>Memory-bound:</strong> the memory bus is the constraint — compute units sit idle waiting for data.
+          </div>
+          <div class="tb-formula">
+            bottleneck = <span class="fl">"compute"</span>  if AI ≥ ridge_point<br>
+            bottleneck = <span class="fl">"memory"</span>   if AI &lt; ridge_point
+          </div>
+        </div>
+
+        <div class="tb-card">
+          <div class="tb-card-hd">
+            <div class="tb-ic ic-pu"><i class="bi bi-x-diamond-fill"></i></div>
+            <div><div class="tb-name">Bound Ratio (×N)</div><div class="tb-unit">dimensionless — how far from the ridge point</div></div>
+          </div>
+          <div class="tb-body"><strong>×12 compute</strong> means the model's AI is 12× above the ridge point — very deeply compute-bound. <strong>×0.2 memory</strong> means the AI is only 20% of the ridge point — very deeply memory-bound. Closest to ×1.0 means most balanced for that hardware.</div>
+          <div class="tb-formula"><span class="fl">bound_ratio = AI / ridge_point</span></div>
+        </div>
+
+        <div class="tb-card">
+          <div class="tb-card-hd">
+            <div class="tb-ic ic-gr"><i class="bi bi-percent"></i></div>
+            <div><div class="tb-name">HW Utilization</div><div class="tb-unit">% of peak compute the workload can actually exploit</div></div>
+          </div>
+          <div class="tb-body">Compute-bound workloads hit 100% — every unit is busy. Memory-bound workloads fall below 100% — some units idle waiting for data. The best single number for asking "does this hardware fit this model?"</div>
+          <div class="tb-formula">
+            attainable = min(peak_compute, AI × bandwidth)<br>
+            <span class="fl">hw_utilization = attainable / peak_compute</span><br>
+            Memory-bound: utilization = AI / ridge_point × 100%
+          </div>
+          <div class="tb-tip"><i class="bi bi-lightbulb-fill"></i>If two architectures give the same latency, pick the one with lower HW utilization — it has more headroom for larger models.</div>
+        </div>
+
+        <!-- ══ Section 5: Concepts ════════════════════════════ -->
+        <div class="tb-sec-title"><i class="bi bi-book-fill" style="margin-right:.35rem"></i>Core Concepts</div>
+
+        <div class="tb-card">
+          <div class="tb-card-hd">
+            <div class="tb-ic ic-sl"><i class="bi bi-triangle-fill"></i></div>
+            <div><div class="tb-name">The Roofline Model</div><div class="tb-unit">Williams, Waterman &amp; Patterson, 2009</div></div>
+          </div>
+          <div class="tb-body">A two-line graph: x-axis = arithmetic intensity, y-axis = attainable performance. A sloped line on the left (memory-bound, slope = bandwidth) meets a flat ceiling on the right (compute-bound, ceiling = peak compute). The junction is the ridge point. VeloArch places every workload on this diagram and reads off latency, energy, and utilization analytically.</div>
+          <svg viewBox="0 0 460 170" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;margin:.75rem auto 0;max-width:100%">
+            <line x1="40" y1="140" x2="430" y2="140" stroke="#cbd5e1" stroke-width="1.5"/>
+            <line x1="40" y1="25"  x2="40"  y2="140" stroke="#cbd5e1" stroke-width="1.5"/>
+            <line x1="40" y1="130" x2="210" y2="40" stroke="#7c3aed" stroke-width="2" stroke-linecap="round"/>
+            <line x1="210" y1="40" x2="420" y2="40" stroke="#2563eb" stroke-width="2" stroke-linecap="round"/>
+            <circle cx="210" cy="40" r="5" fill="#16a34a"/>
+            <text x="230" y="158" fill="#64748b" font-size="10" font-family="system-ui">Arithmetic Intensity (ops/byte)</text>
+            <text x="14" y="90" fill="#64748b" font-size="10" font-family="system-ui" transform="rotate(-90,14,90)">Perf (ops/s)</text>
+            <text x="105" y="108" fill="#7c3aed" font-size="9.5" font-family="system-ui">memory-bound</text>
+            <text x="270" y="33"  fill="#2563eb" font-size="9.5" font-family="system-ui">compute-bound</text>
+            <text x="215" y="35"  fill="#16a34a" font-size="9"   font-family="system-ui">ridge</text>
+            <line x1="210" y1="40" x2="210" y2="140" stroke="#16a34a" stroke-width="1" stroke-dasharray="4,3"/>
+            <circle cx="320" cy="40" r="5" fill="#ea580c"/>
+            <text x="326" y="35" fill="#ea580c" font-size="9" font-family="system-ui">ResNet-18</text>
+          </svg>
+        </div>
+
+        <div class="tb-card">
+          <div class="tb-card-hd">
+            <div class="tb-ic ic-pu"><i class="bi bi-thermometer-half"></i></div>
+            <div><div class="tb-name">DVFS — Dynamic Voltage &amp; Frequency Scaling</div><div class="tb-unit">A power-saving technique used in phones, edge chips, and embedded AI</div></div>
+          </div>
+          <div class="tb-body">DVFS lowers the clock frequency and supply voltage when full performance is not needed. Because CMOS power is proportional to V² × f, and with DVFS voltage tracks frequency, energy per operation drops as the <strong>square</strong> of the frequency ratio — not linearly.</div>
+          <div class="tb-formula">
+            CMOS power: P = α × C × V² × f;  with V ∝ f → E/op ∝ <span class="fl">f²</span><br>
+            VPU+DVFS at 0.7×: E/op = 2.0 × 0.7² = <span class="fl">0.98 pJ</span>  (not 1.4 — linear is wrong)
+          </div>
+        </div>
+
+        <div class="tb-card">
+          <div class="tb-card-hd">
+            <div class="tb-ic ic-sl"><i class="bi bi-info-circle-fill"></i></div>
+            <div><div class="tb-name">Why "Analytical" and Not Measured?</div></div>
+          </div>
+          <div class="tb-body">VeloArch uses closed-form formulas instead of running the model on real hardware. This lets you evaluate a model on hardware you don't own (e.g. a VPU still in design), compare dozens of configurations instantly, and reason about tradeoffs at design time.<br><br>
+          The trade-off: the model assumes ideal conditions. Real-world latency for small batches on discrete GPUs is typically 5–10× higher due to kernel launch overhead and low occupancy. For dedicated embedded accelerators with fixed pipelines, the estimates are much closer to reality.</div>
+        </div>
+
+        <div style="text-align:center;font-size:.72rem;color:var(--s400);border-top:1px solid var(--s200);padding-top:1.2rem;margin-top:.5rem">
+          VeloArch &nbsp;·&nbsp; EU RIGOLETTO Project &nbsp;·&nbsp; Harokopio University of Athens<br>
+          Roofline model: Williams, Waterman &amp; Patterson, <em>CACM 2009</em>
+        </div>
+
+      </div><!-- /modal-body -->
+    </div>
+  </div>
+</div><!-- /textbookModal -->
+
 </body>
 </html>
